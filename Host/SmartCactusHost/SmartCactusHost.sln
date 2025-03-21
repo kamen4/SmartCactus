@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113 d17.12
+VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SCTelegramBot", "SCTelegramBot\SCTelegramBot.csproj", "{C4E4A52D-8637-4C6A-8804-31CCD7BD1BA3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SCMQTTBroker", "SCMQTTBroker\SCMQTTBroker.csproj", "{3227FF50-C45B-4998-BB6D-188305AA1571}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{C4E4A52D-8637-4C6A-8804-31CCD7BD1BA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4E4A52D-8637-4C6A-8804-31CCD7BD1BA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4E4A52D-8637-4C6A-8804-31CCD7BD1BA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3227FF50-C45B-4998-BB6D-188305AA1571}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3227FF50-C45B-4998-BB6D-188305AA1571}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3227FF50-C45B-4998-BB6D-188305AA1571}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3227FF50-C45B-4998-BB6D-188305AA1571}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
