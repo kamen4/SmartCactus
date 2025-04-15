@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "MQTT";
+}
+
+<div class="text-center">
+    <h1 class="display-4">MQTT</h1>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Message"]
+        </div>
+    }
+
+    <form asp-action="StartMQTTBroker" method="post">
+        <button type="submit" class="btn btn-primary">Start broker</button>
+    </form>
+</div>

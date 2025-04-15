@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "Telegram";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Telegram</h1>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Message"]
+        </div>
+    }
+
+    <form asp-action="StartTelgramBot" method="post">
+        <button type="submit" class="btn btn-primary">Start bot</button>
+    </form>
+</div>

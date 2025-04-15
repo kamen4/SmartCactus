@@ -1,11 +1,7 @@
-﻿using System;
-using System.Buffers;
-using System.IO;
+﻿using System.Buffers;
 using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 using MQTTnet;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
@@ -16,7 +12,7 @@ internal class Program
 {
     static async Task Main(string[] args)
     {
-        var certificatePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "certificate.pfx");
+        var certificatePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)??"", "certificate.pfx");
         var certificatePassword = "hello";
 
         if (!File.Exists(certificatePath))
@@ -35,7 +31,7 @@ internal class Program
             .WithEncryptionSslProtocol(SslProtocols.Tls12)
             .Build();
 
-        var mqttFactory = new MqttServerFactory();
+        var mqttFactory = new MqttServerFactory();  
         var mqttServer = mqttFactory.CreateMqttServer(mqttServerOptions);
         mqttServer.ValidatingConnectionAsync += e =>
         {
@@ -49,20 +45,34 @@ internal class Program
             }
             return Task.CompletedTask;
         };
-        mqttServer.ApplicationMessageEnqueuedOrDroppedAsync += e =>
+        mqttServer.ClientConnectedAsync += e =>
         {
-            var a = e.ApplicationMessage.Payload.ToArray();
-            var b= string.Concat(a.Select(x => (char)x));
-
-            Console.WriteLine($"[{DateTime.Now}] Payload {b} for Client: {e.ReceiverClientId}, from: {e.SenderClientId}, Topic: {e.ApplicationMessage.Topic}");
+            Console.WriteLine($"### {e.UserName} connected with id: {e.ClientId}, endpoint: {e.Endpoint}");
             return Task.CompletedTask;
         };
+        mqttServer.InterceptingPublishAsync += e =>
+        {
+            var a = e.ApplicationMessage.Payload.ToArray();
+            var b = string.Concat(a.Select(x => (char)x));
 
+            Console.WriteLine($"\n[{DateTime.Now}] Payload: \n---\n{b}\n---\nfrom: {e.ClientId}, Topic: {e.ApplicationMessage.Topic}");
+            return Task.CompletedTask;
+        };
         Console.WriteLine("Starting...");
         await mqttServer.StartAsync();
+        Console.WriteLine("Broker started. Press any key to exit...");
 
+        await Task.Delay(2500);
+        await mqttServer.InjectApplicationMessage(new InjectedMqttApplicationMessage(new MqttApplicationMessage()
+        {
+            Payload = new ReadOnlySequence<byte>("Test payload".ToCharArray().Select(x => (byte)x).ToArray()),
+            Topic = "test/test",
+            QualityOfServiceLevel = MqttQualityOfServiceLevel.ExactlyOnce,
+        })
+        {
+            SenderClientId = "Telegram"
+        });
 
-        Console.WriteLine("Broker started. Pres any key to exit...");
 
         Console.ReadKey();
 
