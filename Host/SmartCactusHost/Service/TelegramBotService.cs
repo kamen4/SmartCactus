@@ -7,12 +7,12 @@ namespace Service;
 public class TelegramBotService : ITelegramBotService
 {
     private readonly ILogger _logger;
-    private readonly TelegramBot.Core.TelegramBot _bot;
+    private readonly TelegramBot.TelegramBot _bot;
 
     public TelegramBotService(ILogger logger, IConfiguration configuration)
     {
         _logger = logger;
-        _bot = TelegramBot.Core.TelegramBot.InitializeInstance(configuration["telegram:api_key"] ?? "", logger);
+        _bot = TelegramBot.TelegramBot.InitializeInstance(configuration["telegram:api_key"] ?? "", _logger);
     }
 
     public void StartBot()

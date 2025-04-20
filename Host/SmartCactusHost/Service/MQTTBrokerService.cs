@@ -9,12 +9,12 @@ namespace Service;
 public class MQTTBrokerService : IMQTTBrokerService
 {
     private readonly ILogger _logger;
-    private readonly MQTTBroker.Core.MQTTBroker _broker;
+    private readonly MQTTBroker.MQTTBroker _broker;
 
     public MQTTBrokerService(ILogger logger)
     {
         _logger = logger;
-        _broker = MQTTBroker.Core.MQTTBroker.InitializeInstance(GetMqttBrokerCertificate(), logger);
+        _broker = MQTTBroker.MQTTBroker.InitializeInstance(GetMqttBrokerCertificate(), _logger);
     }
     static X509Certificate2 GetMqttBrokerCertificate()
     {

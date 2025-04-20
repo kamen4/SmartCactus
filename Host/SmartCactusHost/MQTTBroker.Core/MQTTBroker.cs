@@ -5,7 +5,7 @@ using MQTTnet.Protocol;
 using MQTTnet.Server;
 using LoggerService;
 
-namespace MQTTBroker.Core;
+namespace MQTTBroker;
 
 public class MQTTBroker
 {

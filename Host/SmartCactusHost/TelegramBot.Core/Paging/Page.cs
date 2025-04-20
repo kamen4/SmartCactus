@@ -1,6 +1,6 @@
 ﻿using Telegram.Bot.Types.ReplyMarkups;
 
-namespace TelegramBot.Core.Paging;
+namespace TelegramBot.Paging;
 
 public class Page
 {

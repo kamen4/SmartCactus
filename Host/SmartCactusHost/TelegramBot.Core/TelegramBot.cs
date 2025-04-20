@@ -3,10 +3,10 @@ using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types;
 using Telegram.Bot.Exceptions;
-using TelegramBot.Core.Paging;
 using LoggerService;
+using TelegramBot.Paging;
 
-namespace TelegramBot.Core;
+namespace TelegramBot;
 
 public class TelegramBot
 {
@@ -46,7 +46,7 @@ public class TelegramBot
             _logger?.Warn("Trying to start Telegram bot, that alredy started receiving messages.");
         }
     }
-        
+
     public static TelegramBot InitializeInstance(string API_KEY, ILogger? logger = null)
     {
         _logger ??= logger;
