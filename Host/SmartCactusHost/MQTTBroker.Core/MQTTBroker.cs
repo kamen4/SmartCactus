@@ -82,6 +82,7 @@ public class MQTTBroker
         }
         else
         {
+
             e.ReasonCode = MqttConnectReasonCode.Success;
         }
         return Task.CompletedTask;

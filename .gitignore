@@ -366,3 +366,4 @@ FodyWeavers.xsd
 #CUSTOM
 appsettings.json
 /Host/SmartCactusHost/WebApp/private.json
+/Host/SmartCactusHost/.editorconfig

@@ -14,8 +14,12 @@ public class RepositoryContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfiguration(new UserConfiguration());
+        modelBuilder.ApplyConfiguration(new DeviceConfiguration());
     }
 
     DbSet<User>? Users { get; set; }
+    DbSet<Device>? Devices { get; set; }
+    DbSet<Topic>? Topics { get; set; }
+    DbSet<DeviceTopic>? DeviceTopics { get; set; }
+    DbSet<MqttMessage>? MqttMessages { get; set; }
 }

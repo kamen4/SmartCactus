@@ -32,7 +32,7 @@ public class TelegramBot
 
     private TelegramBot(string API_KEY)
     {
-        InitializePages();
+        Configurator.InitializePages();
         _receiverOptions = new ReceiverOptions
         {
             AllowedUpdates =
@@ -204,11 +204,33 @@ public class TelegramBot
         {
             chatId = update.CallbackQuery?.Message?.Chat.Id ?? 0;
         }
-        await botClient.SendMessage(
+        await UpdateMessage(
             chatId,
+            update.CallbackQuery?.Message?.MessageId ?? 0,
             Page.GetPage(pageName)?.Text ?? "",
-            parseMode: ParseMode.Markdown,
-            replyMarkup: Page.GetPage(pageName)?.GetTelegramKeyboard());
+            Page.GetPage(pageName)?.GetTelegramKeyboard());
+    }
+
+    private async Task UpdateMessage(long chatId, int messageId, string? text, InlineKeyboardMarkup? replyMarkup)
+    {
+        if (text is not null)
+        {
+            await _botClient.EditMessageText(
+                chatId,
+                messageId,
+                text,
+                parseMode: ParseMode.Markdown,
+                replyMarkup: replyMarkup);
+        }
+
+        if (replyMarkup is not null)
+        {
+            await _botClient.EditMessageReplyMarkup(
+                chatId,
+                messageId,
+                replyMarkup);
+        }
+
     }
 
     private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
@@ -223,90 +245,5 @@ public class TelegramBot
         _logger?.Error($"Telegram|{errorMessage}");
 
         return Task.CompletedTask;
-    }
-
-    private void InitializePages()
-    {
-        const string mainPage = "main";
-        const string settingsPage = "settings";
-        const string deviceManagmentPage = "device_managment";
-        const string myDevicesPage = "my_devices";
-        const string mqttManagmentPage = "mqtt_managment";
-        const string subscriptionsPage = "subscriptions";
-        const string publicationsPage = "publications";
-
-        List<Page> _ =
-        [
-            new(mainPage)
-            {
-                ParrentName = null,
-                Text = "🌵 *MAIN* 🌵",
-                Buttons =
-                [
-                    [ new("HELLO"), new("WORLD") ],
-                    [ new("Settings", $"page/{settingsPage}") ],
-                ]
-            },
-            new(settingsPage)
-            {
-                ParrentName = mainPage,
-                Text = "⚙️ *SETTINGS* ⚙️",
-                Buttons =
-                [
-                    [ new("Device managment", $"page/{deviceManagmentPage}") ],
-                    [ new("MQTT managment", $"page/{mqttManagmentPage}") ],
-                ]
-            },
-            new(deviceManagmentPage)
-            {
-                ParrentName = settingsPage,
-                Text = "📱 *Device managment* 📱",
-                Buttons =
-                [
-                    [ new("Register new device") ],
-                    [ new("View my devices") ],
-                ]
-            },
-            new(myDevicesPage)
-            {
-                ParrentName = deviceManagmentPage,
-                Text = "📱 *My devices* 📱",
-                Buttons =
-                [
-                    [ new("esp01 dht22"), new("esp01 rele") ],
-                    [ new("nodemcu light") ],
-                ]
-            },
-            new(mqttManagmentPage)
-            {
-                ParrentName = settingsPage,
-                Text = "🕸 *MQTT managment* 🕸",
-                Buttons =
-                [
-                    [ new("Subscriptions", $"page/{subscriptionsPage}") ],
-                    [ new("Publications", $"page/{publicationsPage}") ],
-                ]
-            },
-            new(subscriptionsPage)
-            {
-                ParrentName = settingsPage,
-                Text = "⬇️ *Subscriptions* ⬇️",
-                Buttons =
-                [
-                    [ new("Available topics") ],
-                    [ new("My topics") ],
-                ]
-            },
-            new(publicationsPage)
-            {
-                ParrentName = settingsPage,
-                Text = "⬆️ *Publications* ⬆\nTap to remove or edit",
-                Buttons =
-                [
-                    [ new("led1"), new("kettle"), new("room1") ],
-                    [ new("Add NEW") ],
-                ]
-            },
-        ];
     }
 }
