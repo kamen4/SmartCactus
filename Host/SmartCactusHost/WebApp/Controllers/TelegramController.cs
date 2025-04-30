@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Service.Contracts;
+using WebApp.Models;
 using ILogger = LoggerService.ILogger;
 
 namespace WebApp.Controllers;
@@ -17,13 +18,17 @@ public class TelegramController : Controller
 
     public IActionResult Index()
     {
-        return View();
+        TelegramViewModel vm = new()
+        {
+            IsConnected = _serviceManager.TelegramBotService.IsConnected,
+            BotLink = _serviceManager.TelegramBotService.BotLink,
+        };
+        return View(vm);
     }
     
     public IActionResult StartTelgramBot()
     {
         _serviceManager.TelegramBotService.StartBot();
-        TempData["Message"] = "Bot started!";
         return RedirectToAction("Index");
     }
 }

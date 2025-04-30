@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/26.2.2 Chrome/134.0.6998.178 Electron/35.1.2 Safari/537.36" version="26.2.2" pages="4">
   <diagram name="Network" id="bxtuVUIZKK-GRJjP9FBY">
-    <mxGraphModel dx="1105" dy="753" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1215" dy="828" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -55,7 +55,7 @@
           <mxGeometry x="75" y="30" width="50" height="50" as="geometry" />
         </mxCell>
         <mxCell id="AH6rLiMWrSHEaaZjbUMH-10" value="ESP8266&lt;div&gt;Photo Resistor&lt;/div&gt;" style="verticalLabelPosition=bottom;shadow=0;dashed=0;align=center;html=1;verticalAlign=top;shape=mxgraph.electrical.opto_electronics.photo_resistor_1;" parent="AH6rLiMWrSHEaaZjbUMH-7" vertex="1">
-          <mxGeometry x="140" y="30" width="55.56" height="50" as="geometry" />
+          <mxGeometry x="149" y="35" width="55.56" height="50" as="geometry" />
         </mxCell>
         <mxCell id="AH6rLiMWrSHEaaZjbUMH-11" value="Telegram&lt;div&gt;Server&lt;/div&gt;" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="59" y="170" width="120" height="80" as="geometry" />
@@ -577,7 +577,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="vtRmpJEsgis82bQ2vcrT" name="Sequences">
-    <mxGraphModel dx="1215" dy="828" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1519" dy="1035" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />

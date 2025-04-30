@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using MQTTnet.Protocol;
 using MQTTnet.Server;
 using LoggerService;
+using System.Text;
 
 namespace MQTTBroker;
 
@@ -31,7 +32,7 @@ public class MQTTBroker
         _mqttServer.ClientConnectedAsync += ClientConnectedHandler;
         _mqttServer.InterceptingPublishAsync += MessagePublishedHandler;
 
-        _logger?.Info("MQTTBroker instance initialized.");
+        _logger?.Info("MQTTBroker|Instance initialized.");
     }
 
     public static MQTTBroker InitializeInstance(X509Certificate2 certificate, ILogger? logger = null)
@@ -48,31 +49,33 @@ public class MQTTBroker
     {
         if (_mqttServer is null)
         {
-            throw new NullReferenceException("Server is not initialized.");
+            _logger?.Error("MQTTBroker|Server is not initialized.");
+            throw new InvalidOperationException("Server is not initialized.");
         }
         if (_mqttServer.IsStarted)
         {
             await _mqttServer.StartAsync();
-            _logger?.Info("MQTT server started.");
+            _logger?.Info("MQTTBroker|Server started.");
         }
         else
         {
-            _logger?.Warn("Trying to start MQTT server, that alredy started.");
+            _logger?.Warn("MQTTBroker|Trying to start server, that alredy started.");
         }
     }
     public async Task StopServer()
     {
         if (_mqttServer is null || !_mqttServer.IsStarted)
         {
+            _logger?.Error("MQTTBroker|Server is not initialized or started.");
             throw new NullReferenceException("Server is not initialized or started.");
         }
         await _mqttServer.StopAsync();
-        _logger?.Info("MQTT server stopped.");
+        _logger?.Info("MQTTBroker|Server stopped.");
     }
 
     private Task ValidateConnectionHandler(ValidatingConnectionEventArgs e)
     {
-        _logger?.Info($"User with id: {e.ClientId} is trying to connect.");
+        _logger?.Info($"MQTTBroker|User with id: {e.ClientId} is trying to connect.");
         if (string.IsNullOrEmpty(e.ClientId))
         {
             e.ReasonCode = MqttConnectReasonCode.ClientIdentifierNotValid;
@@ -83,23 +86,25 @@ public class MQTTBroker
         }
         return Task.CompletedTask;
     }
+
     private Task ClientConnectedHandler(ClientConnectedEventArgs e)
     {
-        _logger?.Info($"User {e.UserName} connected with id: {e.ClientId} and endpoint: {e.RemoteEndPoint}.");
+        _logger?.Info($"MQTTBroker|User {e.UserName} connected with id: {e.ClientId} and endpoint: {e.RemoteEndPoint}.");
         return Task.CompletedTask;
     }
+
     private Task MessagePublishedHandler(InterceptingPublishEventArgs e)
     {
         var payload = PayloadToString(e.ApplicationMessage.Payload);
         var topic = e.ApplicationMessage.Topic;
 
-        _logger?.Info($"Publish to topic '{topic}', from: {e.ClientId}. Payload: {payload}");
+        _logger?.Info($"MQTTBroker|Publish to topic '{topic}', from: {e.ClientId}. Payload: {payload}");
 
         return Task.CompletedTask;
     }
 
     private static string PayloadToString(ReadOnlySequence<byte> payload)
     {
-        return string.Concat(payload.ToArray().Select(x => (char)x));
+        return EncodingExtensions.GetString(Encoding.UTF8, payload);
     }
 }

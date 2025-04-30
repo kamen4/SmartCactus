@@ -5,6 +5,9 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Exceptions;
 using LoggerService;
 using TelegramBot.Paging;
+using Entities.Enums;
+using Entities.Models;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace TelegramBot;
 
@@ -16,6 +19,16 @@ public class TelegramBot
     private static ILogger? _logger;
 
     private bool _botStarted = false;
+    public bool IsConnected => _botStarted;
+
+    public async Task<string> BotLink()
+    {
+        var botUser = await _botClient.GetMe();
+        return $"https://t.me/{botUser.Username}";
+    }
+    
+    public Func<Entities.Models.User, (LoginStatus status, UserRole role)>? LoginUser { get; set; }
+    public Action<Guid, LoginStatus>? SetUserLoginStatus { get; set; }
 
     private TelegramBot(string API_KEY)
     {
@@ -30,21 +43,7 @@ public class TelegramBot
             DropPendingUpdates = true,
         };
         _botClient = new(API_KEY);
-        _logger?.Info($"Telegram bot initialized with id: {_botClient.BotId}.");
-    }
-
-    public void StartRecieving()
-    {
-        if (!_botStarted)
-        {
-            _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions);
-            _botStarted = true;
-            _logger?.Info("Telegram bot started receiving messages.");
-        }
-        else
-        {
-            _logger?.Warn("Trying to start Telegram bot, that alredy started receiving messages.");
-        }
+        _logger?.Info($"Telegram|Bot initialized with id: {_botClient.BotId}.");
     }
 
     public static TelegramBot InitializeInstance(string API_KEY, ILogger? logger = null)
@@ -54,50 +53,147 @@ public class TelegramBot
         return _instance;
     }
 
-    private static async Task UpdateHandler(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+    public void StartRecieving()
+    {
+        if (!_botStarted)
+        {
+            _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions);
+            _botStarted = true;
+            _logger?.Info("Telegram|Bot started receiving messages.");
+        }
+        else
+        {
+            _logger?.Warn("Telegram|Trying to start Bot, that alredy started receiving messages.");
+        }
+    }
+
+    public void SendMessage(long chatId, string message, ReplyMarkup? replyKeyboard = null)
+    {
+        _botClient.SendMessage(chatId, message, replyMarkup: replyKeyboard);
+    }
+
+    private async Task UpdateHandler(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
     {
         try
         {
-            _logger?.Info($"New update: {update.Type}");
+            Telegram.Bot.Types.User? user = null;
+            long chatId = 0;
+            string? msg = null;
+
+            if (update.Type == UpdateType.Message)
+            {
+                user = update.Message?.From;
+                chatId = update.Message?.Chat.Id ?? 0;
+                msg = update.Message?.Text;
+            }
+            else if (update.Type == UpdateType.CallbackQuery)
+            {
+                user = update.CallbackQuery?.From;
+                chatId = update.CallbackQuery?.Message?.Chat.Id ?? 0;
+                msg = update.CallbackQuery?.Data;
+            }
+            else
+            {
+                _logger?.Warn($"Telegram|Unhandeled update type {update.Type}");
+                return;
+            }
+
+            if (user is null)
+            {
+                _logger?.Warn($"Telegram|User is null for update with id {update.Id}");
+                return;
+            }
+
+            if (LoginUser is null)
+            {
+                _logger?.Error("Telegram|LoginUser function is not set.");
+                return;
+            }
+
+            var loginResult = LoginUser(new Entities.Models.User()
+            {
+                TelegramId = user.Id,
+                TelegramChatId = chatId,
+                TelegramUsername = user.Username,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+            });
+
+            Dictionary<LoginStatus, string> badRegistrationMessages = new()
+            {
+                [LoginStatus.Blocked] = "You have been blocked. Contact admin for more info.",
+                [LoginStatus.Requested] = "Registartation requested, wait for admin response.",
+            };
+            if (loginResult.status != LoginStatus.Accepted)
+            {
+                await _botClient.SendMessage(chatId, badRegistrationMessages[loginResult.status], cancellationToken: cancellationToken);
+                _logger?.Info($"Telegram|Unsuccessful registration for user with id: {user.Id}. Update Id: {update.Id}. Login Result: {loginResult}");
+                return;
+            }
+
+            //if (update.Type == UpdateType.CallbackQuery)
+            //{
+            //    await HandleCallbackQuery();
+            //    return;
+            //}
+
+            //if (update.Type == UpdateType.Message)
+            //{
+            //    await HandleMessage();
+            //    return;
+            //}
+
             switch (update.Type)
             {
                 case UpdateType.Message:
-                    {
-                        await HandlePage(botClient, update, "main");
-                        return;
-                    }
-                case UpdateType.CallbackQuery:
-                    {
-                        var query = update.CallbackQuery;
-                        if (query is null || query.Data is null)
-                        {
-                            Console.WriteLine("Query or it's data is empty");
-                            return;
-                        }
+                {
 
-                        if (query.Data.StartsWith("page/"))
-                        {
-                            await HandlePage(botClient, update, query.Data[5..]);
-                        }
-                        else if (int.TryParse(query.Data, out var id) && Button.TryGetButton(id, out var btn))
-                        {
-                            btn?.Handler?.Invoke();
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Unhandeled query: {query.Data}");
-                        }
+                    await HandlePage(botClient, update, "main");
+                    return;
+                }
+                case UpdateType.CallbackQuery:
+                {
+                    if (msg is null)
+                    {
+                        _logger?.Error($"Telegram|CallbackQuery message is null for update with id {update.Id}");
                         return;
                     }
+                    if (msg.StartsWith(Configurator.Callback.RegistrationRequest) && loginResult.role == UserRole.Admin)
+                    {
+                        var parts = msg.Split('/');
+                        SetUserLoginStatus(new Guid(parts[2]), parts[1] == "Accept" ? LoginStatus.Accepted : LoginStatus.Blocked);
+                        await _botClient.EditMessageReplyMarkup(
+                            chatId,
+                            update.CallbackQuery?.Message?.MessageId ?? throw new NullReferenceException(),
+                            new InlineKeyboardMarkup()
+                            {
+                                InlineKeyboard = [[ InlineKeyboardButton.WithCallbackData($"{parts[1].TrimEnd('e')}ed") ]]
+                            },
+                            cancellationToken: cancellationToken);
+                    }
+                    else if (msg.StartsWith("page/"))
+                    {
+                        await HandlePage(botClient, update, msg[5..]);
+                    }
+                    else if (int.TryParse(msg, out var id) && Button.TryGetButton(id, out var btn))
+                    {
+                        btn?.Handler?.Invoke();
+                    }
+                    else
+                    {
+                        _logger?.Warn($"Telegram|Unhandeled callback query: {msg}");
+                    }
+                    return;
+                }
             }
         }
         catch (Exception e)
         {
-            _logger?.Error(e.Message);
+            _logger?.Error($"Telegram|{e.Message}");
         }
     }
 
-    private static async Task HandlePage(ITelegramBotClient botClient, Update update, string pageName)
+    private async Task HandlePage(ITelegramBotClient botClient, Update update, string pageName)
     {
         long chatId = 0;
         if (update.Type == UpdateType.Message)
@@ -115,7 +211,7 @@ public class TelegramBot
             replyMarkup: Page.GetPage(pageName)?.GetTelegramKeyboard());
     }
 
-    private static Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
+    private Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
     {
         var errorMessage = error switch
         {
@@ -124,12 +220,12 @@ public class TelegramBot
             _ => error.ToString()
         };
 
-        _logger?.Error(errorMessage);
+        _logger?.Error($"Telegram|{errorMessage}");
 
         return Task.CompletedTask;
     }
 
-    private static void InitializePages()
+    private void InitializePages()
     {
         const string mainPage = "main";
         const string settingsPage = "settings";

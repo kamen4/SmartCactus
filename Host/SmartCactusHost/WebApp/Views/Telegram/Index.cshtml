@@ -1,18 +1,19 @@
-﻿@{
+﻿@model TelegramViewModel
+@{
     ViewData["Title"] = "Telegram";
 }
 
 <div class="text-center">
     <h1 class="display-4">Telegram</h1>
-
-    @if (TempData["Message"] != null)
+    
+    @if (Model.IsConnected)
     {
-        <div class="alert alert-success">
-            @TempData["Message"]
-        </div>
+        <p>Bot is connected and can be accessed by this <a href="@Model.BotLink">LINK</a></p>
     }
-
-    <form asp-action="StartTelgramBot" method="post">
-        <button type="submit" class="btn btn-primary">Start bot</button>
-    </form>
+    else
+    {
+        <form asp-action="StartTelgramBot" method="post">
+            <button type="submit" class="btn btn-primary">Start bot</button>
+        </form>
+    }
 </div>
