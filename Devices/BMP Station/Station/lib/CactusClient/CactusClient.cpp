@@ -64,15 +64,12 @@ void CactusClient::_setupWiFi()
 
 void CactusClient::_reconnect()
 {
-    // Loop until reconnected.
     while (!_client.connected())
     {
         Serial.print("Attempting MQTT connection...");
-        String clientId = "ESP8266Client-";
-        clientId += String(random(0xffff), HEX);
+        String clientId = "ESP8266Client-00000001";
 
         bool connected = false;
-        // Try connecting with credentials if provided.
         if (_mqtt_username && _mqtt_password)
         {
             connected = _client.connect(clientId.c_str(), _mqtt_username, _mqtt_password);
@@ -85,7 +82,6 @@ void CactusClient::_reconnect()
         if (connected)
         {
             Serial.println(" connected");
-            // Re-subscribe to all topics.
             for (int i = 0; i < _subscriptionCount; i++)
             {
                 _client.subscribe(_subscriptions[i].topic.c_str());
@@ -125,7 +121,6 @@ void CactusClient::subscribe(const char *topic, MsgCallback callback)
         _subscriptions[_subscriptionCount].callback = callback;
         _subscriptionCount++;
 
-        // Subscribe immediately if already connected.
         if (_client.connected())
         {
             _client.subscribe(topic);
