@@ -60,7 +60,7 @@ void CactusSetupServer::handleSubmit()
     done = true;
 
     server.sendHeader("Connection", "close");
-    server.send(200, "application/json", "");
+    server.send(200, "text/html", DONE_HTML);
 }
 
 void CactusSetupServer::handleNotFound()

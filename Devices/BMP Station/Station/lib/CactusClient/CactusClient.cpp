@@ -66,8 +66,14 @@ void CactusClient::_reconnect()
 {
     while (!_client.connected())
     {
-        Serial.print("Attempting MQTT connection...");
         String clientId = "ESP8266Client-00000001";
+
+        Serial.print("Attempting MQTT connection: ");
+        Serial.print(clientId);
+        Serial.print(" ");
+        Serial.print(_mqtt_username);
+        Serial.print(" ");
+        Serial.print(_mqtt_password);
 
         bool connected = false;
         if (_mqtt_username && _mqtt_password)
@@ -89,7 +95,7 @@ void CactusClient::_reconnect()
         }
         else
         {
-            Serial.print("failed, rc=");
+            Serial.print(" failed, rc=");
             Serial.print(_client.state());
             Serial.println(" try again in 5 seconds");
             delay(5000);

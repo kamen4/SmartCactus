@@ -11,9 +11,11 @@
 #define AP_SSID "BMP_STATION"
 #define AP_PASS "4PHBBfqBZf9iRN9l"
 
+#define DNS_PORT 53
+
 CactusClient cactus;
 Adafruit_BMP280 bmp;
-CactusSetupServer setupServer(53);
+CactusSetupServer setupServer(DNS_PORT);
 bool configured = false;
 unsigned long lastPublish = 0;
 const unsigned long PUBLISH_INTERVAL = 5000;
@@ -96,6 +98,14 @@ bool loadConfig(CactusSetupServer::Response &r)
 	return true;
 }
 
+void clearConfig()
+{
+	EEPROM.begin(512);
+	for (int i = 0; i < 512; i++)
+		EEPROM.write(i, 0);
+	EEPROM.commit();
+}
+
 bool setupCactusClient(const CactusSetupServer::Response &r)
 {
 	Serial.println("Setting up Cactus client...");
@@ -114,7 +124,9 @@ bool setupCactusClient(const CactusSetupServer::Response &r)
 	memcpy(json, decB, decLen);
 	json[decLen] = '\0';
 
-	Serial.println("Parsing MQTT settings JSON...");
+	Serial.print("Parsing MQTT settings JSON: ");
+	Serial.println(json);
+
 	StaticJsonDocument<256> m;
 	if (deserializeJson(m, json) != DeserializationError::Ok)
 	{
@@ -128,15 +140,17 @@ bool setupCactusClient(const CactusSetupServer::Response &r)
 	cactus.setWiFiCredentials(r.ssid.c_str(), r.password.c_str());
 
 	Serial.println("Configuring MQTT settings...");
-	cactus.setMQTTSettings(m["host"], m["port"],
-						   m["clientId"].as<const char *>(),
+
+	cactus.setMQTTSettings(m["host"],
+						   m["port"],
+						   m["username"].as<const char *>(),
 						   m["password"].as<const char *>());
 
 	Serial.println("Setting up subscriptions...");
 	cactus.subscribe("led_state", [&](JsonDocument &d)
-					 { 
-                         digitalWrite(LED_PIN, strcmp(d["led_state"], "1") == 0); 
-                         Serial.println("LED state updated"); });
+					 {
+						 digitalWrite(LED_PIN, strcmp(d["led_state"], "1") == 0);
+						 Serial.println("LED state updated"); });
 	cactus.addSubscriptionExample("led_state", "{\"led_state\":\"1\"}");
 	cactus.addPublicationExample("esp8266_data", "{\"pressure\":1013.25,\"temperature\":24.5}");
 
@@ -199,6 +213,7 @@ void processConfiguration()
 
 void setup()
 {
+	clearConfig();
 	Serial.begin(9600);
 	Serial.println("\n\nStarting Cactus BMP Station...");
 
