@@ -9,6 +9,5 @@ public interface IUserRepository
     User? GetUser(Guid userId, bool trackChanges);
     User? GetUserByCondition(Expression<Func<User, bool>> expression, bool trackChanges);
     void CreateUser(User user);
-    IEnumerable<User> GetByIds(IEnumerable<Guid> ids, bool trackChanges);
     void DeleteUser(User user);
 }

@@ -1,18 +1,49 @@
-﻿@{
+﻿@model MqttViewModel
+@using Microsoft.AspNetCore.Mvc.ViewFeatures
+
+@{
     ViewData["Title"] = "MQTT";
 }
 
 <div class="text-center">
     <h1 class="display-4">MQTT</h1>
 
-    @if (TempData["Message"] != null)
+    @if(Model.IsStarted)
     {
-        <div class="alert alert-success">
-            @TempData["Message"]
-        </div>
+        <p>Server is started!</p>
+    }
+    else
+    {
+        <form asp-action="StartMQTTBroker" method="post">
+            <button type="submit" class="btn btn-primary">Start broker</button>
+        </form>        
     }
 
-    <form asp-action="StartMQTTBroker" method="post">
-        <button type="submit" class="btn btn-primary">Start broker</button>
-    </form>
+    @if(Model.IsStarted && TempData["MqttCode"] == null)
+    {
+        <form asp-action="RequestDeviceCreation" method="post">
+            <button type="submit" class="btn btn-primary">Request device creation</button>
+        </form>
+    }
+
+    @if (TempData["MqttCode"] != null)
+    {
+        <div class="input-group mb-3">
+            <input type="text" id="mqttCode" class="form-control" value="@TempData["MqttCode"]" readonly aria-readonly="true" />
+            <button class="btn btn-outline-secondary" type="button" onclick="copyMqttCode()" title="Copy to clipboard">
+                Copy
+            </button>
+        </div>
+        <script>
+            function copyMqttCode() {
+                const input = document.getElementById("mqttCode");
+                input.select();
+                input.setSelectionRange(0, 99999);
+
+                navigator.clipboard.writeText(input.value)
+                    .then(() => alert("Copied to clipboard!"))
+                    .catch(err => console.error("Copy failed:", err));
+            }
+        </script>
+    }
 </div>

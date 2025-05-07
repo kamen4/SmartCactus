@@ -25,11 +25,6 @@ public class UserRepository : RepositoryBase<User>, IUserRepository
         return FindAll(trackChanges).OrderBy(u => u.TelegramId).ToList();
     }
 
-    public IEnumerable<User> GetByIds(IEnumerable<Guid> ids, bool trackChanges)
-    {
-        return FindByCondition(u => ids.Contains(u.Id), trackChanges).ToList();
-    }
-
     public User? GetUser(Guid userId, bool trackChanges)
     {
         return FindByCondition(u => u.Id.Equals(userId), trackChanges).SingleOrDefault();

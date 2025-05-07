@@ -3,4 +3,7 @@
 public interface IMQTTBrokerService
 {
     void StartBroker();
+    void StopBroker();
+    string RequestDeviceCreation();
+    bool IsStarted();
 }

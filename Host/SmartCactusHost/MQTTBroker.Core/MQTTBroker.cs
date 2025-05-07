@@ -5,6 +5,8 @@ using MQTTnet.Protocol;
 using MQTTnet.Server;
 using LoggerService;
 using System.Text;
+using System.Net;
+using Entities.Models;
 
 namespace MQTTBroker;
 
@@ -15,13 +17,16 @@ public class MQTTBroker
     private readonly X509Certificate2? _certificate;
     private readonly MqttServer? _mqttServer;
 
+    public int Port { get; } = 8883;
+    public Func<string, string, string, Device?> AuthorizeDevice;
+
     private MQTTBroker(X509Certificate2 certificate)
     {
         _certificate = certificate;
         var mqttServerOptions = new MqttServerOptionsBuilder()
             .WithoutDefaultEndpoint()
             .WithEncryptedEndpoint()
-            .WithEncryptedEndpointPort(8883)
+            .WithEncryptedEndpointPort(Port)
             .WithEncryptionCertificate(_certificate.Export(X509ContentType.Pfx))
             .WithEncryptionSslProtocol(SslProtocols.Tls12)
             .Build();
@@ -52,7 +57,8 @@ public class MQTTBroker
             _logger?.Error("MQTTBroker|Server is not initialized.");
             throw new InvalidOperationException("Server is not initialized.");
         }
-        if (_mqttServer.IsStarted)
+
+        if (!_mqttServer.IsStarted)
         {
             await _mqttServer.StartAsync();
             _logger?.Info("MQTTBroker|Server started.");
@@ -62,7 +68,7 @@ public class MQTTBroker
             _logger?.Warn("MQTTBroker|Trying to start server, that alredy started.");
         }
     }
-    public async Task StopServer()
+    public async void StopServer()
     {
         if (_mqttServer is null || !_mqttServer.IsStarted)
         {
@@ -73,16 +79,18 @@ public class MQTTBroker
         _logger?.Info("MQTTBroker|Server stopped.");
     }
 
+    public bool IsStarted() =>_mqttServer?.IsStarted ?? false;
+
     private Task ValidateConnectionHandler(ValidatingConnectionEventArgs e)
     {
         _logger?.Info($"MQTTBroker|User with id: {e.ClientId} is trying to connect.");
-        if (string.IsNullOrEmpty(e.ClientId))
+        Device? device = AuthorizeDevice(e.ClientId, e.UserName, e.Password);
+        if (device is null)
         {
             e.ReasonCode = MqttConnectReasonCode.ClientIdentifierNotValid;
         }
         else
         {
-
             e.ReasonCode = MqttConnectReasonCode.Success;
         }
         return Task.CompletedTask;

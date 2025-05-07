@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Repository.Contracts\Repository.Contracts.csproj" />
     <ProjectReference Include="..\Service.Contracts\Service.Contracts.csproj" />
     <ProjectReference Include="..\TelegramBot.Core\TelegramBot.csproj" />
+    <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

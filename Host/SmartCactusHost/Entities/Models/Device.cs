@@ -7,9 +7,11 @@ public class Device
     public Guid Id { get; set; }
     public string? MqttClientId { get; set; }
     public string? MqttUsername { get; set; }
-    public string? MqttPassword { get; set; }
+    public string? MqttPasswordHash { get; set; }
     public bool IsActive { get; set; } = true;
     public DeviceType DeviceType { get; set; } = DeviceType.Unknown;
+    public DateTime CreatedOn { get; set; } = DateTime.Now;
+
 
     public List<Topic> Topics { get; set; } = [];
 }
