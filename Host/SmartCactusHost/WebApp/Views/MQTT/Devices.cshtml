@@ -1,0 +1,56 @@
+﻿@using Entities.Enums
+@model List<MqttDeviceViewModel>
+@{
+    ViewData["Title"] = "Devices";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="RequestDeviceCreation" method="post">
+    <button type="submit" class="btn btn-primary">Request device creation</button>
+</form>
+
+@if (TempData["MqttCode"] != null)
+{
+    <div class="input-group mb-3">
+        <input type="text" id="mqttCode" class="form-control" value="@TempData["MqttCode"]" readonly aria-readonly="true" />
+        <button class="btn btn-outline-secondary" type="button" onclick="copyMqttCode()" title="Copy to clipboard">
+            Copy
+        </button>
+    </div>
+    <script>
+        function copyMqttCode() {
+            const input = document.getElementById("mqttCode");
+            input.select();
+            input.setSelectionRange(0, 99999);
+
+            navigator.clipboard.writeText(input.value)
+                .then(() => alert("Copied to clipboard!"))
+                .catch(err => console.error("Copy failed:", err));
+        }
+    </script>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Device Id</th>
+            <th>State</th>
+            <th>Created On</th>
+            <th>Is Sensor</th>
+            <th>Is Output</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var device in Model)
+        {
+            <tr>
+                <td>@device.MqttClientId</td>
+                <td>@(device.IsActive ? "Active" : "Inactive")</td>
+                <td>@device.CreatedOn</td>
+                <td>@(device.DeviceType.HasFlag(DeviceType.Sensor) ? "Yes " : "No")</td>
+                <td>@(device.DeviceType.HasFlag(DeviceType.Output) ? "Yes " : "No")</td>
+            </tr>
+        }
+    </tbody>
+</table>

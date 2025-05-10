@@ -1,0 +1,67 @@
+﻿@using Entities.Enums
+@model List<TelegramUserViewModel>
+@{
+    ViewData["Title"] = "Telegram Users";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Telegram Username</th>
+            <th>Telegram ID</th>
+            <th>Role</th>
+            <th>Login Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in Model)
+        {
+            <tr>
+                <td>@user.FirstName</td>
+                <td>@user.LastName</td>
+                <td>@user.TelegramUsername</td>
+                <td>@user.TelegramId</td>
+                <td>@user.Role</td>
+                <td>@user.LoginStatus</td>
+                <td>
+                    <form asp-action="ToggleLoginStatus" method="post" style="display:inline">
+                        <input type="hidden" name="id" value="@user.Id" />
+                        @if (user.LoginStatus == LoginStatus.Accepted)
+                        {
+                            <button type="submit" name="newStatus" value="Blocked" class="btn btn-warning btn-sm">
+                                Block
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" name="newStatus" value="Accepted" class="btn btn-success btn-sm">
+                                Activate
+                            </button>
+                        }
+                    </form>
+
+                    <form asp-action="ToggleUserRole" method="post" style="display:inline; margin-left:5px;">
+                        <input type="hidden" name="id" value="@user.Id" />
+                        @if (user.Role == UserRole.User)
+                        {
+                            <button type="submit" name="newRole" value="Admin" class="btn btn-primary btn-sm">
+                                Make Admin
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" name="newRole" value="User" class="btn btn-secondary btn-sm">
+                                Remove Admin
+                            </button>
+                        }
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
