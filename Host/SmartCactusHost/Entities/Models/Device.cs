@@ -8,7 +8,7 @@ public class Device
     public string? MqttClientId { get; set; }
     public string? MqttUsername { get; set; }
     public string? MqttPasswordHash { get; set; }
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; } = false;
     public DeviceType DeviceType { get; set; } = DeviceType.Unknown;
     public DateTime CreatedOn { get; set; } = DateTime.Now;
 

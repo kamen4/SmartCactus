@@ -4,5 +4,8 @@ public interface IRepositoryManager
 {
     IUserRepository User { get; }
     IDeviceRepository Device { get; }
+    ITopicRepository Topic { get; }
+    IDeviceTopicRepository DeviceTopic { get; }
+    IMessageRepository Message { get; }
     void Save();
 }

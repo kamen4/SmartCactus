@@ -5,8 +5,11 @@ using MQTTnet.Protocol;
 using MQTTnet.Server;
 using LoggerService;
 using System.Text;
-using System.Net;
 using Entities.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+using Entities.DTO.Topics;
+using Microsoft.VisualBasic;
 
 namespace MQTTBroker;
 
@@ -18,7 +21,11 @@ public class MQTTBroker
     private readonly MqttServer? _mqttServer;
 
     public int Port { get; } = 8883;
+    
     public Func<string, string, string, Device?> AuthorizeDevice;
+    public Action<PingResponseDTO> UpdateDeviceTopics;
+    public Action<string> MarkAsDisconnected;
+    public Action<string, string, string> MessagePublished;
 
     private MQTTBroker(X509Certificate2 certificate)
     {
@@ -35,6 +42,8 @@ public class MQTTBroker
 
         _mqttServer.ValidatingConnectionAsync += ValidateConnectionHandler;
         _mqttServer.ClientConnectedAsync += ClientConnectedHandler;
+        _mqttServer.ClientDisconnectedAsync += ClientDisconnectedHandler;
+
         _mqttServer.InterceptingPublishAsync += MessagePublishedHandler;
 
         _logger?.Info("MQTTBroker|Instance initialized.");
@@ -78,8 +87,8 @@ public class MQTTBroker
         await _mqttServer.StopAsync();
         _logger?.Info("MQTTBroker|Server stopped.");
     }
-
     public bool IsStarted() =>_mqttServer?.IsStarted ?? false;
+    public void Ping() => _mqttServer.InjectApplicationMessage("ping/all", qualityOfServiceLevel: MqttQualityOfServiceLevel.ExactlyOnce);
 
     private Task ValidateConnectionHandler(ValidatingConnectionEventArgs e)
     {
@@ -87,7 +96,7 @@ public class MQTTBroker
         Device? device = AuthorizeDevice(e.ClientId, e.UserName, e.Password);
         if (device is null)
         {
-            e.ReasonCode = MqttConnectReasonCode.ClientIdentifierNotValid;
+            e.ReasonCode = MqttConnectReasonCode.BadUserNameOrPassword;
         }
         else
         {
@@ -99,7 +108,20 @@ public class MQTTBroker
     private Task ClientConnectedHandler(ClientConnectedEventArgs e)
     {
         _logger?.Info($"MQTTBroker|User {e.UserName} connected with id: {e.ClientId} and endpoint: {e.RemoteEndPoint}.");
-#warning TODO ping
+        _ = StartPing(e.ClientId);
+        return Task.CompletedTask;
+    }
+
+    private async Task StartPing(string clientId)
+    {
+        await Task.Delay(1000);
+        await _mqttServer.InjectApplicationMessage($"ping/{clientId}", qualityOfServiceLevel: MqttQualityOfServiceLevel.ExactlyOnce);
+    }
+
+    private Task ClientDisconnectedHandler(ClientDisconnectedEventArgs e)
+    {
+        _logger?.Info($"MQTTBroker|User {e.UserName} disconnected");
+        MarkAsDisconnected(e.ClientId);
         return Task.CompletedTask;
     }
 
@@ -107,8 +129,22 @@ public class MQTTBroker
     {
         var payload = PayloadToString(e.ApplicationMessage.Payload);
         var topic = e.ApplicationMessage.Topic;
-
         _logger?.Info($"MQTTBroker|Publish to topic '{topic}', from: {e.ClientId}. Payload: {payload}");
+
+        if (topic.StartsWith("ping/"))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (topic.StartsWith("ping-response"))
+        {
+            var pingResponse = JsonSerializer.Deserialize<PingResponseDTO>(payload);
+            pingResponse.DeviceId = e.ClientId;
+            UpdateDeviceTopics(pingResponse);
+            return Task.CompletedTask;
+        }
+
+        MessagePublished(e.ClientId, topic, payload);
 
         return Task.CompletedTask;
     }

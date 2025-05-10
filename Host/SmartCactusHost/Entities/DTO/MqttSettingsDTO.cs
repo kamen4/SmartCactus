@@ -2,7 +2,7 @@
 
 namespace Entities.DTO;
 
-public class DeviceCreationRequest
+public class MqttSettingsDTO
 {
     [JsonPropertyName("host")]
     public string Host { get; set; } = string.Empty;

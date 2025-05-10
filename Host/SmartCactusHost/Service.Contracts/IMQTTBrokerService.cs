@@ -6,4 +6,5 @@ public interface IMQTTBrokerService
     void StopBroker();
     string RequestDeviceCreation();
     bool IsStarted();
+    void Ping();
 }

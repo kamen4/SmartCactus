@@ -1,7 +1,10 @@
 #include "CactusClient.h"
 
-const char *CactusClient::PING_TOPIC = "ping";
-const char *CactusClient::PING_RESPONSE_TOPIC = "ping_response";
+const char *CactusClient::DEVICE_ID = "ESP8266BMP280-00000001";
+
+const char *CactusClient::PING_TOPIC = "ping/all";
+const char *CactusClient::PING_TOPIC_OWN = "ping/ESP8266BMP280-00000001";
+const char *CactusClient::PING_RESPONSE_TOPIC = "ping-response";
 
 CactusClient *CactusClient::_instance = nullptr;
 
@@ -20,6 +23,7 @@ CactusClient::CactusClient()
     _espClient.setInsecure();
     _client.setCallback(_mqttCallback);
     subscribe(PING_TOPIC, nullptr);
+    subscribe(PING_TOPIC_OWN, nullptr);
     _instance = this;
 }
 
@@ -36,10 +40,17 @@ void CactusClient::setWiFiCredentials(const char *ssid, const char *password)
 
 void CactusClient::setMQTTSettings(const char *server, int port, const char *username, const char *password)
 {
-    _mqtt_server = server;
+    strncpy(_mqtt_server_buffer, server, sizeof(_mqtt_server_buffer) - 1);
+    _mqtt_server_buffer[sizeof(_mqtt_server_buffer) - 1] = '\0';
+    strncpy(_mqtt_username_buffer, username, sizeof(_mqtt_username_buffer) - 1);
+    _mqtt_username_buffer[sizeof(_mqtt_username_buffer) - 1] = '\0';
+    strncpy(_mqtt_password_buffer, password, sizeof(_mqtt_password_buffer) - 1);
+    _mqtt_password_buffer[sizeof(_mqtt_password_buffer) - 1] = '\0';
+
+    _mqtt_server = _mqtt_server_buffer;
+    _mqtt_username = _mqtt_username_buffer;
+    _mqtt_password = _mqtt_password_buffer;
     _mqtt_port = port;
-    _mqtt_username = username;
-    _mqtt_password = password;
     _client.setServer(_mqtt_server, _mqtt_port);
 }
 
@@ -66,7 +77,7 @@ void CactusClient::_reconnect()
 {
     while (!_client.connected())
     {
-        String clientId = "ESP8266Client-00000001";
+        String clientId = DEVICE_ID;
 
         Serial.print("Attempting MQTT connection: ");
         Serial.print(clientId);
@@ -143,7 +154,7 @@ void CactusClient::addSubscriptionExample(const char *topic, const char *jsonExa
     if (_subExampleCount < MAX_TOPIC_EXAMPLES)
     {
         _subExamples[_subExampleCount].topic = topic;
-        _subExamples[_subExampleCount].jsonExample = jsonExample;
+        _subExamples[_subExampleCount].jsonSchema = jsonExample;
         _subExampleCount++;
     }
     else
@@ -157,7 +168,7 @@ void CactusClient::addPublicationExample(const char *topic, const char *jsonExam
     if (_pubExampleCount < MAX_TOPIC_EXAMPLES)
     {
         _pubExamples[_pubExampleCount].topic = topic;
-        _pubExamples[_pubExampleCount].jsonExample = jsonExample;
+        _pubExamples[_pubExampleCount].jsonSchema = jsonExample;
         _pubExampleCount++;
     }
     else
@@ -197,7 +208,7 @@ void CactusClient::_mqttCallback(char *topic, byte *payload, unsigned int length
     if (_instance)
     {
         // Handle "ping" messages specially.
-        if (String(topic) == PING_TOPIC)
+        if (String(topic) == PING_TOPIC || String(topic) == PING_TOPIC_OWN)
         {
             DynamicJsonDocument pingDoc(2048);
             JsonArray subs = pingDoc.createNestedArray("subscriptions");
@@ -205,7 +216,7 @@ void CactusClient::_mqttCallback(char *topic, byte *payload, unsigned int length
             {
                 JsonObject obj = subs.createNestedObject();
                 obj["topic"] = _instance->_subExamples[i].topic;
-                obj["jsonExample"] = _instance->_subExamples[i].jsonExample;
+                obj["jsonSchema"] = _instance->_subExamples[i].jsonSchema;
             }
 
             JsonArray pubs = pingDoc.createNestedArray("publications");
@@ -213,7 +224,7 @@ void CactusClient::_mqttCallback(char *topic, byte *payload, unsigned int length
             {
                 JsonObject obj = pubs.createNestedObject();
                 obj["topic"] = _instance->_pubExamples[i].topic;
-                obj["jsonExample"] = _instance->_pubExamples[i].jsonExample;
+                obj["jsonSchema"] = _instance->_pubExamples[i].jsonSchema;
             }
             // Publish the response on the defined response topic.
             _instance->publish(PING_RESPONSE_TOPIC, pingDoc, false);

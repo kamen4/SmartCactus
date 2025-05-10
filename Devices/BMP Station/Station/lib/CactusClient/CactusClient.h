@@ -17,7 +17,7 @@ public:
     struct TopicExample
     {
         String topic;
-        String jsonExample;
+        String jsonSchema;
     };
 
     static const int MAX_SUBSCRIPTIONS = 10;
@@ -91,13 +91,19 @@ private:
     TopicExample _pubExamples[MAX_TOPIC_EXAMPLES];
     int _pubExampleCount;
 
+    static const char *DEVICE_ID;
     // Built-in "ping" topic name (all devices are subscribed to "ping").
     static const char *PING_TOPIC;
+    static const char *PING_TOPIC_OWN;
     // Topic to publish the response to a "ping".
     static const char *PING_RESPONSE_TOPIC;
 
     // Static pointer to the singleton instance for use in the static callback.
     static CactusClient *_instance;
+
+    char _mqtt_server_buffer[64];
+    char _mqtt_username_buffer[64];
+    char _mqtt_password_buffer[64];
 };
 
 #endif // CACTUSCLIENT_H

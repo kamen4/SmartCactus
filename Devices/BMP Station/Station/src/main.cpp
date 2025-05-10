@@ -18,13 +18,13 @@ Adafruit_BMP280 bmp;
 CactusSetupServer setupServer(DNS_PORT);
 bool configured = false;
 unsigned long lastPublish = 0;
-const unsigned long PUBLISH_INTERVAL = 5000;
+const unsigned long PUBLISH_INTERVAL = 30000;
 
 struct EConfig
 {
 	char ssid[32];
 	char pass[32];
-	char mqtt[128];
+	char mqtt[256];
 };
 
 void startBMP()
@@ -58,7 +58,7 @@ void publishBMP()
 		Serial.print(temperature);
 		Serial.println(" °C");
 
-		cactus.publish("esp8266_data", doc, true);
+		cactus.publish("bmp280/data", doc, true);
 	}
 	else
 	{
@@ -94,15 +94,19 @@ bool loadConfig(CactusSetupServer::Response &r)
 	r.ssid = String(cfg.ssid);
 	r.password = String(cfg.pass);
 	r.mqttSettingsBase64 = String(cfg.mqtt);
-	Serial.println("Configuration loaded successfully");
+	Serial.print("Configuration loaded successfully: ");
+	Serial.print(r.ssid);
+	Serial.print(" ");
+	Serial.print(r.password);
+	Serial.print(" ");
+	Serial.println(r.mqttSettingsBase64);
 	return true;
 }
 
 void clearConfig()
 {
 	EEPROM.begin(512);
-	for (int i = 0; i < 512; i++)
-		EEPROM.write(i, 0);
+	EEPROM.write(0, 0);
 	EEPROM.commit();
 }
 
@@ -147,13 +151,7 @@ bool setupCactusClient(const CactusSetupServer::Response &r)
 						   m["password"].as<const char *>());
 
 	Serial.println("Setting up subscriptions...");
-	cactus.subscribe("led_state", [&](JsonDocument &d)
-					 {
-						 digitalWrite(LED_PIN, strcmp(d["led_state"], "1") == 0);
-						 Serial.println("LED state updated"); });
-	cactus.addSubscriptionExample("led_state", "{\"led_state\":\"1\"}");
-	cactus.addPublicationExample("esp8266_data", "{\"pressure\":1013.25,\"temperature\":24.5}");
-
+	cactus.addPublicationExample("bmp280/data", "{\"pressure\":{\"type\":\"number\"},\"temperature\":{\"type\":\"number\"}}");
 	Serial.println("Starting Cactus client...");
 	cactus.begin();
 
@@ -213,12 +211,8 @@ void processConfiguration()
 
 void setup()
 {
-	clearConfig();
-	Serial.begin(9600);
+	Serial.begin(115200);
 	Serial.println("\n\nStarting Cactus BMP Station...");
-
-	pinMode(LED_PIN, OUTPUT);
-	digitalWrite(LED_PIN, LOW);
 
 	if (!connectSavedConfig())
 	{

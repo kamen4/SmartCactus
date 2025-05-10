@@ -30,9 +30,9 @@ public class DeviceRepository : RepositoryBase<Device>, IDeviceRepository
         return FindByCondition(d => d.Id.Equals(deviceId), trackChanges).SingleOrDefault();
     }
 
-    public Device? GetDeviceByCondition(Expression<Func<Device, bool>> expression, bool trackChanges)
+    public Device? GetDeviceByClientId(string clientId, bool trackChanges)
     {
-        return FindByCondition(expression, trackChanges).SingleOrDefault();
+        return FindByCondition(d => d.MqttClientId == clientId, trackChanges).SingleOrDefault();
     }
 
     public Device? GetDeviceByMqttUsername(string username, bool trackChanges)

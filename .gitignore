@@ -370,3 +370,4 @@ appsettings.json
 /Host/SmartCactusHost/WebApp/SmartCactus.db
 /Host/SmartCactusHost/WebApp/SmartCactus.db-shm
 /Host/SmartCactusHost/WebApp/SmartCactus.db-wal
+Devices/BMP Station/Station/.vscode/settings.json
