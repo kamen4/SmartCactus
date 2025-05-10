@@ -8,7 +8,6 @@ using Entities.Models;
 using LoggerService;
 using Repository.Contracts;
 using Service.Contracts;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using System.Security.Cryptography;
 using Utils;
 using Entities.DTO;
@@ -62,11 +61,11 @@ public class MQTTBrokerService : IMQTTBrokerService
             _logger.Error($"MQTTBrokerServ|Invalid password for device {username}.");
             return null;
         }
-        if (device.MqttClientId is not null && device.MqttClientId != clientId)
-        {
-            _logger.Error($"MQTTBrokerServ|Device with username {username} already exist.");
-            return null;
-        }
+        //if (device.MqttClientId is not null && device.MqttClientId != clientId)
+        //{
+        //    _logger.Error($"MQTTBrokerServ|Device with username {username} already exist.");
+        //    return null;
+        //}
         //ok
         if (string.IsNullOrEmpty(device.MqttClientId))
         {

@@ -99,6 +99,7 @@ public class MQTTBroker
     private Task ClientConnectedHandler(ClientConnectedEventArgs e)
     {
         _logger?.Info($"MQTTBroker|User {e.UserName} connected with id: {e.ClientId} and endpoint: {e.RemoteEndPoint}.");
+#warning TODO ping
         return Task.CompletedTask;
     }
 

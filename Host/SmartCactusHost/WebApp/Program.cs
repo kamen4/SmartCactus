@@ -18,8 +18,10 @@ public class Program
         builder.Services.AddControllersWithViews();
         builder.Services.AddSingleton<ILogger, Logger>();
         builder.Services.AddSingleton<IRepositoryManager, RepositoryManager>();
-        builder.Services.AddDbContext<RepositoryContext>(opts => 
-            opts.UseSqlServer(builder.Configuration.GetConnectionString("SqlConnection")), ServiceLifetime.Singleton);
+
+        builder.Services.AddDbContext<RepositoryContext>(opts =>
+            opts.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")), ServiceLifetime.Singleton);
+        
         builder.Services.AddSingleton<IServiceManager, ServiceManager>();
 
         var app = builder.Build();
