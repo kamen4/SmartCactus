@@ -63,7 +63,14 @@ void CactusSetupServer::tryConnect()
         return;
     }
 
-    Serial.println("[SetupServer] Saved config found, decoding MQTT settings");
+    Serial.print("[SetupServer] Saved config found: ");
+    Serial.print(r.ssid);
+    Serial.print(" ");
+    Serial.print(r.password);
+    Serial.print(" ");
+    Serial.println(r.mqttBase64);
+
+    Serial.println("[SetupServer] Decoding MQTT settings");
     size_t len;
     uint8_t *buf = CBase64::decode(r.mqttBase64.c_str(), r.mqttBase64.length(), len);
     if (!buf)
@@ -89,31 +96,73 @@ void CactusSetupServer::tryConnect()
         configCallback(response);
 }
 
+bool CactusSetupServer::saveConfig(const Response &in)
+{
+    StaticJsonDocument<512> doc;
+    doc["ssid"] = in.ssid;
+    doc["password"] = in.password;
+    doc["mqttBase64"] = in.mqttBase64;
+
+    char buf[512];
+    size_t len = serializeJson(doc, buf, sizeof(buf));
+    if (len == 0 || len >= sizeof(buf))
+    {
+        Serial.println("[SetupServer][ERROR] Config JSON too large");
+        return false;
+    }
+
+    EEPROM.begin(512);
+    EEPROM.write(0, 1);
+    EEPROM.write(1, (uint8_t)(len & 0xFF));
+    EEPROM.write(2, (uint8_t)(len >> 8));
+    for (size_t i = 0; i < len; i++)
+    {
+        EEPROM.write(3 + i, buf[i]);
+    }
+    bool ok = EEPROM.commit();
+    Serial.print("[SetupServer] saveConfig: commit ");
+    Serial.println(ok ? "succeeded" : "failed");
+    return ok;
+}
+
 bool CactusSetupServer::loadConfig(Response &out)
 {
-    Serial.println("[SetupServer] loadConfig()");
     EEPROM.begin(512);
     if (EEPROM.read(0) != 1)
     {
-        Serial.println("[SetupServer] No valid flag in EEPROM");
+        Serial.println("[SetupServer] loadConfig: no valid flag");
         return false;
     }
-    EEPROM.get(1, out);
-    Serial.print("[SetupServer] Loaded SSID: ");
-    Serial.println(out.ssid);
-    return out.ssid.length() > 0 && out.mqttBase64.length() > 0;
-}
+    uint16_t len = EEPROM.read(1) | (EEPROM.read(2) << 8);
+    if (len == 0 || len > 508)
+    {
+        Serial.print("[SetupServer] loadConfig: bad length=");
+        Serial.println(len);
+        return false;
+    }
+    StaticJsonDocument<512> doc;
+    char buf[512];
+    for (uint16_t i = 0; i < len; i++)
+    {
+        buf[i] = EEPROM.read(3 + i);
+    }
+    buf[len] = '\0';
 
-bool CactusSetupServer::saveConfig(const Response &in)
-{
-    Serial.println("[SetupServer] saveConfig()");
-    EEPROM.begin(512);
-    EEPROM.write(0, 1);
-    EEPROM.put(1, in);
-    bool ok = EEPROM.commit();
-    Serial.print("[SetupServer] EEPROM commit ");
-    Serial.println(ok ? "succeeded" : "failed");
-    return ok;
+    auto err = deserializeJson(doc, buf);
+    if (err)
+    {
+        Serial.print("[SetupServer][ERROR] deserializeJson: ");
+        Serial.println(err.c_str());
+        return false;
+    }
+
+    out.ssid = String((const char *)doc["ssid"]);
+    out.password = String((const char *)doc["password"]);
+    out.mqttBase64 = String((const char *)doc["mqttBase64"]);
+
+    Serial.print("[SetupServer] loadConfig: SSID=");
+    Serial.println(out.ssid);
+    return true;
 }
 
 void CactusSetupServer::startPortal(const char *apSsid, const char *apPassword)

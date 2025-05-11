@@ -85,7 +85,7 @@ public class MQTTBrokerService : IMQTTBrokerService
             _logger.Error($"MQTTBrokerServ|Invalid password for device {username}.");
             return null;
         }
-        if (device.MqttClientId is not null && device.MqttClientId != clientId)
+        if (!string.IsNullOrEmpty(device.MqttClientId) && device.MqttClientId != clientId)
         {
             _logger.Error($"MQTTBrokerServ|Device with username {username} already exist.");
             return null;
