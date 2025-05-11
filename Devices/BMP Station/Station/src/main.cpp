@@ -1,240 +1,135 @@
 #include <Arduino.h>
-#include <EEPROM.h>
 #include <Adafruit_BMP280.h>
-#include <ArduinoJson.h>
 #include "CactusClient.h"
 #include "CactusSetupServer.h"
+#include <ArduinoJson.h>
 #include "CBase64.h"
-
-#define LED_PIN D0
 
 #define AP_SSID "BMP_STATION"
 #define AP_PASS "4PHBBfqBZf9iRN9l"
+#define BMP_TOPIC "bmp280/data"
+#define PUBLISH_INTERVAL 5000UL
 
-#define DNS_PORT 53
-
-CactusClient cactus;
 Adafruit_BMP280 bmp;
-CactusSetupServer setupServer(DNS_PORT);
-bool configured = false;
+CactusSetupServer setupServer;
+CactusClient cactus;
+
+bool bmpReady = false;
 unsigned long lastPublish = 0;
-const unsigned long PUBLISH_INTERVAL = 30000;
 
-struct EConfig
+void initBMP()
 {
-	char ssid[32];
-	char pass[32];
-	char mqtt[256];
-};
-
-void startBMP()
-{
-	Serial.println("Initializing BMP280 sensor...");
+	Serial.println("[BMP] Initializing BMP280 sensor...");
 	while (!bmp.begin(BMP280_ADDRESS_ALT, BMP280_CHIPID))
 	{
-		Serial.println("BMP280 not found. Try Again in 1s.");
+		Serial.println("[BMP][ERROR] BMP280 not found, retrying in 1s");
 		delay(1000);
 	}
-	Serial.println("BMP280 initialized successfully");
-	bmp.setSampling(Adafruit_BMP280::MODE_FORCED, Adafruit_BMP280::SAMPLING_X2,
-					Adafruit_BMP280::SAMPLING_X16, Adafruit_BMP280::FILTER_X16,
-					Adafruit_BMP280::STANDBY_MS_500);
+	bmp.setSampling(
+		Adafruit_BMP280::MODE_FORCED,
+		Adafruit_BMP280::SAMPLING_X2,
+		Adafruit_BMP280::SAMPLING_X16,
+		Adafruit_BMP280::FILTER_X16,
+		Adafruit_BMP280::STANDBY_MS_500);
+	bmpReady = true;
+	Serial.println("[BMP] BMP280 initialized successfully");
 }
 
-void publishBMP()
+void onConfigured(const CactusSetupServer::Response &r)
 {
-	Serial.println("Taking BMP280 measurement...");
-	if (bmp.takeForcedMeasurement())
+	Serial.println("[SETUP] Configuration received from portal");
+	Serial.print("[SETUP] SSID: ");
+	Serial.println(r.ssid);
+	Serial.print("[SETUP] Password: ");
+	Serial.println(r.password);
+	Serial.print("[SETUP] MQTT (Base64): ");
+	Serial.println(r.mqttBase64);
+
+	Serial.println("[SETUP] Decoding MQTT settings...");
+	size_t len;
+	uint8_t *buf = CBase64::decode(r.mqttBase64.c_str(), r.mqttBase64.length(), len);
+	if (!buf)
 	{
-		StaticJsonDocument<256> doc;
-		float pressure = bmp.readPressure();
-		float temperature = bmp.readTemperature();
-		doc["pressure"] = pressure;
-		doc["temperature"] = temperature;
-
-		Serial.print("Publishing data - Pressure: ");
-		Serial.print(pressure);
-		Serial.print(" Pa, Temperature: ");
-		Serial.print(temperature);
-		Serial.println(" °C");
-
-		cactus.publish("bmp280/data", doc, true);
+		Serial.println("[SETUP][ERROR] Base64 decode failed");
+		return;
 	}
-	else
+	buf[len] = '\0';
+
+	DynamicJsonDocument doc(len + 1);
+	auto err = deserializeJson(doc, (char *)buf);
+	free(buf);
+	if (err)
 	{
-		Serial.println("Failed to take BMP280 measurement");
-	}
-}
-
-void saveConfig(const CactusSetupServer::Response &r)
-{
-	Serial.println("Saving configuration to EEPROM...");
-	EEPROM.begin(512);
-	EConfig cfg;
-	strncpy(cfg.ssid, r.ssid.c_str(), sizeof(cfg.ssid));
-	strncpy(cfg.pass, r.password.c_str(), sizeof(cfg.pass));
-	strncpy(cfg.mqtt, r.mqttSettingsBase64.c_str(), sizeof(cfg.mqtt));
-	EEPROM.write(0, 1);
-	EEPROM.put(1, cfg);
-	EEPROM.commit();
-	Serial.println("Configuration saved successfully");
-}
-
-bool loadConfig(CactusSetupServer::Response &r)
-{
-	Serial.println("Loading configuration from EEPROM...");
-	EEPROM.begin(512);
-	if (EEPROM.read(0) != 1)
-	{
-		Serial.println("No valid configuration found in EEPROM");
-		return false;
-	}
-	EConfig cfg;
-	EEPROM.get(1, cfg);
-	r.ssid = String(cfg.ssid);
-	r.password = String(cfg.pass);
-	r.mqttSettingsBase64 = String(cfg.mqtt);
-	Serial.print("Configuration loaded successfully: ");
-	Serial.print(r.ssid);
-	Serial.print(" ");
-	Serial.print(r.password);
-	Serial.print(" ");
-	Serial.println(r.mqttSettingsBase64);
-	return true;
-}
-
-void clearConfig()
-{
-	EEPROM.begin(512);
-	EEPROM.write(0, 0);
-	EEPROM.commit();
-}
-
-bool setupCactusClient(const CactusSetupServer::Response &r)
-{
-	Serial.println("Setting up Cactus client...");
-
-	Serial.println("Decoding MQTT settings...");
-	size_t decLen;
-	uint8_t *decB = CBase64::decode(r.mqttSettingsBase64.c_str(),
-									r.mqttSettingsBase64.length(), decLen);
-	if (!decB)
-	{
-		Serial.println("Failed to decode Base64 MQTT settings");
-		return false;
+		Serial.print("[SETUP][ERROR] JSON parse error: ");
+		Serial.println(err.c_str());
+		return;
 	}
 
-	char *json = (char *)malloc(decLen + 1);
-	memcpy(json, decB, decLen);
-	json[decLen] = '\0';
-
-	Serial.print("Parsing MQTT settings JSON: ");
-	Serial.println(json);
-
-	StaticJsonDocument<256> m;
-	if (deserializeJson(m, json) != DeserializationError::Ok)
-	{
-		Serial.println("Failed to parse MQTT settings JSON");
-		free(decB);
-		free(json);
-		return false;
-	}
-
-	Serial.println("Configuring WiFi credentials...");
+	Serial.println("[SETUP] Applying WiFi credentials and MQTT settings to CactusClient...");
 	cactus.setWiFiCredentials(r.ssid.c_str(), r.password.c_str());
+	cactus.setMQTTSettings(
+		doc["host"].as<const char *>(),
+		doc["port"].as<int>(),
+		doc["username"].as<const char *>(),
+		doc["password"].as<const char *>());
+	cactus.addPublicationExample(
+		BMP_TOPIC,
+		"{\"pressure\":{\"type\":\"number\"},\"temperature\":{\"type\":\"number\"}}");
 
-	Serial.println("Configuring MQTT settings...");
-
-	cactus.setMQTTSettings(m["host"],
-						   m["port"],
-						   m["username"].as<const char *>(),
-						   m["password"].as<const char *>());
-
-	Serial.println("Setting up subscriptions...");
-	cactus.addPublicationExample("bmp280/data", "{\"pressure\":{\"type\":\"number\"},\"temperature\":{\"type\":\"number\"}}");
-	Serial.println("Starting Cactus client...");
+	Serial.println("[SETUP] Starting CactusClient...");
 	cactus.begin();
 
-	startBMP();
-
-	free(decB);
-	free(json);
-
-	Serial.println("Cactus client setup completed successfully");
-	return true;
-}
-
-bool connectSavedConfig()
-{
-	Serial.println("Attempting to connect using saved configuration...");
-	CactusSetupServer::Response r;
-	if (!loadConfig(r))
-	{
-		Serial.println("No saved configuration available");
-		return false;
-	}
-
-	if (!setupCactusClient(r))
-	{
-		Serial.println("Failed to setup client with saved configuration");
-		return false;
-	}
-
-	configured = true;
-	lastPublish = millis();
-	Serial.println("Successfully connected using saved configuration");
-	return true;
-}
-
-void processConfiguration()
-{
-	setupServer.handleClient();
-	if (!setupServer.isFinished())
-		return;
-
-	Serial.println("Configuration received from portal");
-	auto r = setupServer.getResponse();
-	if (setupCactusClient(r))
-	{
-		Serial.println("New configuration applied successfully");
-		saveConfig(r);
-		setupServer.stop();
-		configured = true;
-		lastPublish = millis();
-		Serial.println("Configuration portal stopped");
-	}
-	else
-	{
-		Serial.println("Failed to apply new configuration");
-	}
+	initBMP();
+	Serial.println("[SETUP] Ready to publish sensor data");
 }
 
 void setup()
 {
 	Serial.begin(115200);
-	Serial.println("\n\nStarting Cactus BMP Station...");
+	Serial.println("\n\n[SYSTEM] Starting Cactus BMP Station");
 
-	if (!connectSavedConfig())
-	{
-		Serial.println("Initializing configuration portal...");
-		setupServer.begin(AP_SSID, AP_PASS);
-		Serial.println("Configuration portal started");
-	}
+	setupServer.onConfigured(onConfigured);
+	Serial.println("[SYSTEM] Attempting to connect with saved configuration...");
+	setupServer.beginOrStartPortal(AP_SSID, AP_PASS);
 }
 
 void loop()
 {
-	if (!configured)
+	setupServer.loop();
+
+	if (!setupServer.isConfigured())
 	{
-		processConfiguration();
 		return;
 	}
 
 	cactus.loop();
 
-	if (millis() - lastPublish >= PUBLISH_INTERVAL)
+	if (bmpReady && millis() - lastPublish >= PUBLISH_INTERVAL)
 	{
 		lastPublish = millis();
-		publishBMP();
+		Serial.println("[PUBLISH] Taking BMP280 measurement...");
+		if (bmp.takeForcedMeasurement())
+		{
+			float pressure = bmp.readPressure();
+			float temperature = bmp.readTemperature();
+
+			Serial.print("[PUBLISH] Pressure: ");
+			Serial.print(pressure);
+			Serial.print(" Pa, Temperature: ");
+			Serial.print(temperature);
+			Serial.println(" °C");
+
+			StaticJsonDocument<128> doc;
+			doc["pressure"] = pressure;
+			doc["temperature"] = temperature;
+
+			Serial.println("[PUBLISH] Publishing to MQTT...");
+			cactus.publish(BMP_TOPIC, doc, true);
+			Serial.println("[PUBLISH] Data published successfully");
+		}
+		else
+		{
+			Serial.println("[PUBLISH][ERROR] Failed to read BMP280 data");
+		}
 	}
 }

@@ -112,9 +112,8 @@ public class MQTTBroker
         return Task.CompletedTask;
     }
 
-    private async Task StartPing(string clientId)
+    public async Task StartPing(string clientId)
     {
-        await Task.Delay(1000);
         await _mqttServer.InjectApplicationMessage($"ping/{clientId}", qualityOfServiceLevel: MqttQualityOfServiceLevel.ExactlyOnce);
     }
 
