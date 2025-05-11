@@ -182,14 +182,15 @@ public class MQTTBrokerService : IMQTTBrokerService
         if (device is null)
         {
             _logger.Error($"MQTTBrokerServ|Device with clentId {clientId} not found.");
-            throw new Exception($"Device with clentId {clientId} not found.");
+            return;
         }
 
         var topic = _repositoryManager.Topic.GetTopicByName(topicName, false);
         if (topic is null)
         {
             _logger.Error($"MQTTBrokerServ|Topic with name {topicName} not found.");
-            throw new Exception($"Topic with name {topicName} not found.");
+            _ = _broker.StartPing(clientId);
+            return;
         }
 
         _repositoryManager.Message.CreateMessage(new()
