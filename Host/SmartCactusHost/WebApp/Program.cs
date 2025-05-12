@@ -1,10 +1,10 @@
 using Service;
 using Service.Contracts;
 using LoggerService;
+using ILogger = LoggerService.ILogger;
 using Repository;
 using Microsoft.EntityFrameworkCore;
 using Repository.Contracts;
-using ILogger = LoggerService.ILogger;
 
 
 namespace WebApp;
