@@ -16,6 +16,17 @@
             <button type="submit" class="btn btn-primary">Stop server</button>
         </form>
 
+        <form asp-action="Publish" method="post">
+            <label>
+                Topic
+                <input type="text" name="topic"/>
+            </label>
+            <label>
+                Payload
+                <input type="text" name="payload" />
+            </label>
+            <button type="submit" class="btn btn-primary">Publish</button>
+        </form>
     }
     else
     {

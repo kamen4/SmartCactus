@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Entities.Enums;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Query.Internal;
 using Repository.Contracts;
 using Service.Contracts;
@@ -62,5 +63,14 @@ public class MQTTController : Controller
         string code = _serviceManager.MQTTBrokerService.RequestDeviceCreation();
         TempData["MqttCode"] = code;
         return RedirectToAction(nameof(Devices));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Publish(string topic, string payload)
+    {
+        _serviceManager.MQTTBrokerService.Publish(topic, payload);
+
+        return RedirectToAction(nameof(Index));
     }
 }

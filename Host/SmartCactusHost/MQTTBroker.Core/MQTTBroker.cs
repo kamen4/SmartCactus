@@ -117,6 +117,11 @@ public class MQTTBroker
         await _mqttServer.InjectApplicationMessage($"ping/{clientId}", qualityOfServiceLevel: MqttQualityOfServiceLevel.ExactlyOnce);
     }
 
+    public async Task Publish(string topic, string payload)
+    {
+        await _mqttServer.InjectApplicationMessage(topic, payload);
+    }
+
     private Task ClientDisconnectedHandler(ClientDisconnectedEventArgs e)
     {
         _logger?.Info($"MQTTBroker|User {e.UserName} disconnected");
@@ -130,7 +135,7 @@ public class MQTTBroker
         var topic = e.ApplicationMessage.Topic;
         _logger?.Info($"MQTTBroker|Publish to topic '{topic}', from: {e.ClientId}. Payload: {payload}");
 
-        if (topic.StartsWith("ping/"))
+        if (topic.StartsWith("ping/") || string.IsNullOrEmpty(e.ClientId))
         {
             return Task.CompletedTask;
         }

@@ -8,7 +8,7 @@
 #define AP_SSID "BMP_STATION"
 #define AP_PASS "4PHBBfqBZf9iRN9l"
 #define BMP_TOPIC "bmp280/data"
-#define PUBLISH_INTERVAL 5000UL
+#define PUBLISH_INTERVAL 30'000UL
 
 Adafruit_BMP280 bmp;
 CactusSetupServer setupServer;

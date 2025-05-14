@@ -44,6 +44,8 @@ public class MQTTBrokerService : IMQTTBrokerService
 
     public void Ping() => _broker.Ping();
 
+    public Task Publish(string topic, string payload) => _broker.Publish(topic, payload);
+
     public string RequestDeviceCreation()
     {
         MqttSettingsDTO request = new()

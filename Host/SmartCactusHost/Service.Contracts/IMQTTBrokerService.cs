@@ -7,4 +7,5 @@ public interface IMQTTBrokerService
     string RequestDeviceCreation();
     bool IsStarted();
     void Ping();
+    Task Publish(string topic, string payload);
 }

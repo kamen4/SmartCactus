@@ -1,9 +1,9 @@
 #include "CactusClient.h"
 
-const char *CactusClient::DEVICE_ID = "BMP280-00000001";
+const char *CactusClient::DEVICE_ID = "RELAY-00000001";
 
 const char *CactusClient::PING_TOPIC = "ping/all";
-const char *CactusClient::PING_TOPIC_OWN = "ping/BMP280-00000001";
+const char *CactusClient::PING_TOPIC_OWN = "ping/RELAY-00000001";
 const char *CactusClient::PING_RESPONSE_TOPIC = "ping-response";
 
 CactusClient *CactusClient::_instance = nullptr;
