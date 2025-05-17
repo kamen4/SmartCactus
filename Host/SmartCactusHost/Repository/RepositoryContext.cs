@@ -10,6 +10,7 @@ public class RepositoryContext : DbContext
     public RepositoryContext (DbContextOptions options)
         : base (options)
     {
+        Database.EnsureDeleted();
         Database.EnsureCreated();
     }
 

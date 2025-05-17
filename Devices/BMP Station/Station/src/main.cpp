@@ -85,6 +85,10 @@ void onConfigured(const CactusSetupServer::Response &r)
 
 void setup()
 {
+	EEPROM.begin(512);
+	EEPROM.write(0, 0);
+	EEPROM.commit();
+
 	Serial.begin(115200);
 	Serial.println("\n\n[SYSTEM] Starting Cactus BMP Station");
 

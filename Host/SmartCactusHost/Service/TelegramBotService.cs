@@ -40,10 +40,19 @@ public class TelegramBotService : ITelegramBotService
     private void SendRequestToAdmin(User user)
     {
         var admin = _repositoryManager.User.GetUserByCondition(u => u.Role == UserRole.Admin, false);
+        if (admin is null)
+        {
+            var firstAdmin = _repositoryManager.User.GetUser(user.Id, true);
+            firstAdmin.LoginStatus = LoginStatus.Accepted;
+            firstAdmin.Role = UserRole.Admin;
+            _repositoryManager.Save();
+        }
+        else
+        {
         _bot.SendMessage(
-            admin?.TelegramChatId ?? 0, 
-            $"New registration request from: @{user.TelegramUsername}",
-            Configurator.InlineKeyboards.RegistrationRequest(user.Id.ToString()));
+                admin.TelegramChatId ?? 0,
+                $"New registration request from: @{user.TelegramUsername}. \nCheck \"User Managment\" settings.");
+        }
     }
 
     private void SetUserLoginStatus(Guid guid, LoginStatus status)

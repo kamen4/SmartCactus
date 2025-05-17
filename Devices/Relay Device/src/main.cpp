@@ -11,7 +11,7 @@ static const char *RELAY1_GET_TOPIC = "relay/1/get";
 static const char *RELAY1_SET_TOPIC = "relay/1/set";
 static const char *RELAY1_INF_TOPIC = "relay/1/inf";
 
-#define RELAY1_PIN D1
+#define RELAY1_PIN D7
 
 CactusSetupServer setupServer;
 CactusClient cactus;
@@ -100,6 +100,10 @@ void onConfigured(const CactusSetupServer::Response &r)
 
 void setup()
 {
+	EEPROM.begin(512);
+	EEPROM.write(0, 0);
+	EEPROM.commit();
+
 	Serial.begin(115200);
 	Serial.println("\n\n[SYSTEM] Starting Cactus Relay Device");
 
