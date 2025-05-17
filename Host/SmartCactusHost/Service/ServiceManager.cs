@@ -12,7 +12,7 @@ public class ServiceManager : IServiceManager
 
     public ServiceManager(ILogger logger, IRepositoryManager repositoryManager, IConfiguration configuration)
     {
-        _telegramBotService = new(() => new TelegramBotService(logger, repositoryManager, configuration));
+        _telegramBotService = new(() => new TelegramBotService(logger, repositoryManager, this, configuration));
         _MQTTBrokerService = new(() => new MQTTBrokerService(logger, repositoryManager));
     }
 

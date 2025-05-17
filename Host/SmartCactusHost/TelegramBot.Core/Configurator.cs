@@ -134,10 +134,7 @@ public static class Configurator
                 {
                     ParrentName = device_managment,
                     Text = "🎫 *Device Request* 🎫",
-                    Buttons =
-                    [
-                        [ new("Copy") ]
-                    ]
+                    Buttons = []
                 },
                 new(devices)
                 {

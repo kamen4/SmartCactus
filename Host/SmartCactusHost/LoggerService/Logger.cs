@@ -8,7 +8,8 @@ public class Logger : ILogger
     static Logger()
     {
         LogManager.Setup().LoadConfiguration(builder => {
-            builder.ForLogger().WriteToConsole();
+            builder.ForLogger().WriteToColoredConsole();
+            builder.ForLogger().WriteToFile($"LOG_{DateTime.Now.ToFileTime()}.txt");
         });
     }
     public void Debug(string message) => _logger.Debug(message);

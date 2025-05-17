@@ -12,12 +12,14 @@ public class TelegramBotService : ITelegramBotService
 {
     private readonly ILogger _logger;
     private readonly IRepositoryManager _repositoryManager;
+    private readonly IServiceManager _serviceManager;
     private readonly TelegramBot.TelegramBot _bot;
 
-    public TelegramBotService(ILogger logger, IRepositoryManager repositoryManager, IConfiguration configuration)
+    public TelegramBotService(ILogger logger, IRepositoryManager repositoryManager, IServiceManager serviceManager, IConfiguration configuration)
     {
         _logger = logger;
         _repositoryManager = repositoryManager;
+        _serviceManager = serviceManager;
         _bot = TelegramBot.TelegramBot.InitializeInstance(configuration["telegram:api_key"] ?? "", _logger);
 
         _bot.LoginUser += LoginUser;
@@ -27,6 +29,9 @@ public class TelegramBotService : ITelegramBotService
         _bot.GetAllRegistredUsers += GetAllRegistredUsers;
         _bot.GetUserById += id => _repositoryManager.User.GetUser(id, false);
 
+        _bot.CreateDeviceRequest += _serviceManager.MQTTBrokerService.RequestDeviceCreation;
+        _bot.GetRegisteredDevices += GetRegisteredDevices;
+        _bot.GetTopicsWithConnectionForDevice += GetTopicsWithConnectionForDevice;
     }
 
     private (LoginStatus, UserRole) LoginUser(User user)
@@ -90,6 +95,27 @@ public class TelegramBotService : ITelegramBotService
     private List<User> GetAllRegistredUsers()
     {
         return _repositoryManager.User.GetAllUsers(false).Where(u => u.LoginStatus != LoginStatus.Requested).ToList();
+    }
+
+    private List<Device> GetRegisteredDevices()
+    {
+        return _repositoryManager.Device
+                .GetAllDevices(false)
+                .Where(d => !string.IsNullOrEmpty(d.MqttClientId))
+                .ToList();
+    }
+
+    private (List<Topic>, List<DeviceTopic>) GetTopicsWithConnectionForDevice(Guid guid)
+    {
+        var connections = _repositoryManager.DeviceTopic
+            .GetConnectionsByDevice(guid, false)
+            .ToList();
+        var topics = _repositoryManager.Topic
+            .GetAllTopics(false)
+            .Where(t => connections.Any(c => c.TopicId == t.Id))
+            .ToList();
+
+        return (topics, connections);
     }
 
     public bool IsConnected => _bot.IsConnected;

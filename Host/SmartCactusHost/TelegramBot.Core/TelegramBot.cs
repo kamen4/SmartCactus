@@ -10,6 +10,7 @@ using Entities.Models;
 using Telegram.Bot.Types.ReplyMarkups;
 using User = Entities.Models.User;
 using TGUser = Telegram.Bot.Types.User;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
 
 namespace TelegramBot;
 
@@ -36,6 +37,10 @@ public class TelegramBot
     public Func<List<User>>? GetActiveRegistrationRequests { get; set; }
     public Func<List<User>>? GetAllRegistredUsers { get; set; }
     public Func<Guid, User?>? GetUserById { get; set; }
+
+    public Func<string>? CreateDeviceRequest { get; set; }
+    public Func<List<Device>>? GetRegisteredDevices { get; set; }
+    public Func<Guid, (List<Topic>, List<DeviceTopic>)>? GetTopicsWithConnectionForDevice { get; set; }
     #endregion
 
     private TelegramBot(string API_KEY)
@@ -246,9 +251,9 @@ public class TelegramBot
                     page = page.GetCopy();
                     User user = GetUserById(Guid.Parse(pageSplit[2]));
                     page.Text = $"{page.Text}\nRequest from user: @{user.TelegramUsername}";
-                    page.Buttons = 
+                    page.Buttons =
                     [
-                        [ new("Approve", handler: async () => 
+                        [ new("Approve", handler: async () =>
                         {
                             SetUserLoginStatus(user.Id, LoginStatus.Accepted);
                             var page = Page.GetPage(Configurator.Paging.user_managment);
@@ -286,6 +291,46 @@ _Role_ : {(user.Role.HasFlag(UserRole.Admin) ? "Admin" : "User")}";
                         }) ],
                     ];
 
+                    break;
+                }
+
+            case Configurator.Paging.device_request:
+                {
+                    page = page.GetCopy();
+                    string token = CreateDeviceRequest();
+                    page.Text = $"{page.Text}\nDevice request created successfully\\!\n*Your Token*:\n`{token}`";
+                    break;
+                }
+            case Configurator.Paging.devices:
+                {
+                    page = page.GetCopy();
+                    List<Device> devices = GetRegisteredDevices();
+                    if (pageSplit.Length == 2)
+                    {
+                        page.Text = $"{page.Text}\nRegistered devices count: {devices.Count}\nSelect device id to view info:";
+                    }
+                    else
+                    {
+                        var selectedDevice = devices.FirstOrDefault(x => x.Id.Equals(Guid.Parse(pageSplit[2])));
+                        if (selectedDevice is null) return; //TODO ERROR
+                        (List<Topic> topics, List<DeviceTopic> connections) = GetTopicsWithConnectionForDevice(selectedDevice.Id);
+                        page.Text = @$"{page.Text}
+Selected device:
+_Guid_ : `{selectedDevice.Id}`
+_Mqtt Id_ : {selectedDevice.MqttClientId.Replace("-", "\\-")}
+_Device Type_ : {(selectedDevice.DeviceType.HasFlag(DeviceType.Sensor) ? "Sensor " : "")}{(selectedDevice.DeviceType.HasFlag(DeviceType.Output) ? "Output" : "")}
+_Created On_ : {(selectedDevice.CreatedOn.ToString("d")).Replace("-", "\\-")}
+_Topics_ :
+{ string.Join("\n", topics
+    .Join(connections, t => t.Id, c => c.TopicId, (t, c) => new { t.Name, c.EventType })
+    .Select(x => $"{x.Name} \\- {x.EventType}")) }
+
+Registered devices count: {devices.Count}
+Select device id to view info:";
+                    }
+                    page.Buttons = devices.Select(d => new List<Button>() { 
+                        new(d.MqttClientId ?? "", $"page/{Configurator.Paging.devices}/{d.Id}") 
+                    }).ToList();
                     break;
                 }
         }
