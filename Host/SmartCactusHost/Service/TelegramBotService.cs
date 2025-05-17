@@ -19,8 +19,14 @@ public class TelegramBotService : ITelegramBotService
         _logger = logger;
         _repositoryManager = repositoryManager;
         _bot = TelegramBot.TelegramBot.InitializeInstance(configuration["telegram:api_key"] ?? "", _logger);
+
         _bot.LoginUser += LoginUser;
         _bot.SetUserLoginStatus += SetUserLoginStatus;
+        _bot.SetUserRole += SetUserRole;
+        _bot.GetActiveRegistrationRequests += GetActiveRegistrationRequests;
+        _bot.GetAllRegistredUsers += GetAllRegistredUsers;
+        _bot.GetUserById += id => _repositoryManager.User.GetUser(id, false);
+
     }
 
     private (LoginStatus, UserRole) LoginUser(User user)
@@ -49,7 +55,7 @@ public class TelegramBotService : ITelegramBotService
         }
         else
         {
-        _bot.SendMessage(
+            _bot.SendMessage(
                 admin.TelegramChatId ?? 0,
                 $"New registration request from: @{user.TelegramUsername}. \nCheck \"User Managment\" settings.");
         }
@@ -64,6 +70,26 @@ public class TelegramBotService : ITelegramBotService
             _repositoryManager.Save();
             _bot.SendMessage(user.TelegramChatId ?? 0, $"Your registration request was {status}");
         }
+    }
+ 
+    private void SetUserRole(Guid guid, UserRole role)
+    {
+        var user = _repositoryManager.User.GetUser(guid, true);
+        if (user is not null)
+        {
+            user.Role = role;
+            _repositoryManager.Save();
+        }
+    }
+
+    private List<User> GetActiveRegistrationRequests()
+    {
+        return _repositoryManager.User.GetAllUsers(false).Where(u => u.LoginStatus == LoginStatus.Requested).ToList();
+    }
+
+    private List<User> GetAllRegistredUsers()
+    {
+        return _repositoryManager.User.GetAllUsers(false).Where(u => u.LoginStatus != LoginStatus.Requested).ToList();
     }
 
     public bool IsConnected => _bot.IsConnected;

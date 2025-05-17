@@ -1,6 +1,6 @@
-﻿using KB = Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup;
+﻿using TelegramBot.Paging;
 using BtnMatr = System.Collections.Generic.List<System.Collections.Generic.List<Telegram.Bot.Types.ReplyMarkups.InlineKeyboardButton>>;
-using TelegramBot.Paging;
+using KB = Telegram.Bot.Types.ReplyMarkups.InlineKeyboardMarkup;
 
 namespace TelegramBot;
 
@@ -27,88 +27,183 @@ public static class Configurator
             }
         };
     }
-    public static void InitializePages()
-    {
-        const string mainPage = "main";
-        const string settingsPage = "settings";
-        const string deviceManagmentPage = "device_managment";
-        const string myDevicesPage = "my_devices";
-        const string mqttManagmentPage = "mqtt_managment";
-        const string subscriptionsPage = "subscriptions";
-        const string publicationsPage = "publications";
 
-        List<Page> _ =
-        [
-            new(mainPage)
+    public static class Paging
+    {
+        #region Pages Names
+        //1
+        public const string main = "main";
+        //2
+        public const string settings = "settings";
+        //3
+        public const string user_managment = "user_managment";
+        public const string device_managment = "device_managment";
+        public const string menu_managment = "menu_managment";
+        //4
+        public const string active_requests = "active_requests";
+        public const string all_users = "all_users";
+
+        public const string device_request = "device_request";
+        public const string devices = "devices";
+
+        public const string subscriptions = "subscriptions";
+        public const string publications = "publications";
+        //5
+        public const string request_info = "request_info";
+        public const string user_info = "user_info";
+
+        public const string add_subscription = "add_subscription";
+        public const string remove_subscription = "remove_subscription";
+
+        public const string add_publication = "add_publication";
+        public const string remove_publication = "remove_publication";
+        #endregion
+        public static void InitializePages()
+        {
+            List<Page> _ =
+            [
+                //1
+                new(main)
             {
                 ParrentName = null,
-                Text = "🌵 *MAIN* 🌵",
+                Text = "🌵 *Main* 🌵",
                 Buttons =
                 [
-                    [ new("HELLO"), new("WORLD") ],
-                    [ new("Settings", $"page/{settingsPage}") ],
+                    [ new("Settings", $"page/{settings}") ],
                 ]
             },
-            new(settingsPage)
-            {
-                ParrentName = mainPage,
-                Text = "⚙️ *SETTINGS* ⚙️",
-                Buttons =
-                [
-                    [ new("Device managment", $"page/{deviceManagmentPage}") ],
-                    [ new("MQTT managment", $"page/{mqttManagmentPage}") ],
-                ]
-            },
-            new(deviceManagmentPage)
-            {
-                ParrentName = settingsPage,
-                Text = "📱 *Device managment* 📱",
-                Buttons =
-                [
-                    [ new("Register new device") ],
-                    [ new("View my devices") ],
-                ]
-            },
-            new(myDevicesPage)
-            {
-                ParrentName = deviceManagmentPage,
-                Text = "📱 *My devices* 📱",
-                Buttons =
-                [
-                    [ new("esp01 dht22"), new("esp01 rele") ],
-                    [ new("nodemcu light") ],
-                ]
-            },
-            new(mqttManagmentPage)
-            {
-                ParrentName = settingsPage,
-                Text = "🕸 *MQTT managment* 🕸",
-                Buttons =
-                [
-                    [ new("Subscriptions", $"page/{subscriptionsPage}") ],
-                    [ new("Publications", $"page/{publicationsPage}") ],
-                ]
-            },
-            new(subscriptionsPage)
-            {
-                ParrentName = settingsPage,
-                Text = "⬇️ *Subscriptions* ⬇️",
-                Buttons =
-                [
-                    [ new("Available topics") ],
-                    [ new("My topics") ],
-                ]
-            },
-            new(publicationsPage)
-            {
-                ParrentName = settingsPage,
-                Text = "⬆️ *Publications* ⬆\nTap to remove or edit",
-                Buttons =
-                [
-                    [ new("led1"), new("kettle"), new("room1") ],
-                    [ new("Add NEW") ],
-                ]
-            },
-        ];
+                //2
+                new(settings)
+                {
+                        ParrentName = main,
+                        Text = "⚙️ *Settings* ⚙️",
+                        Buttons =
+                        [
+                            [ new("User Managment", $"page/{user_managment}") ],
+                            [ new("Device Managment", $"page/{device_managment}") ],
+                            [ new("Menu Managment", $"page/{menu_managment}") ],
+                        ]
+                },
+                //3
+                new(user_managment)
+                {
+                    ParrentName = settings,
+                    Text = "🙋‍ *User Managment* 🙋",
+                    Buttons =
+                    [
+                        [ new("Active requests", $"page/{active_requests}") ],
+                        [ new("All users", $"page/{all_users}") ],
+                    ]
+                },
+                new(device_managment)
+                {
+                    ParrentName = settings,
+                    Text = "📱 *Device Managment* 📱",
+                    Buttons =
+                    [
+                        [ new("Create device request", $"page/{device_request}") ],
+                        [ new("Devices", $"page/{devices}") ],
+                    ]
+                },
+                new(menu_managment)
+                {
+                    ParrentName = settings,
+                    Text = "🗒 *Menu Managment* 🗒",
+                    Buttons =
+                    [
+                        [ new("Subscriptions", $"page/{subscriptions}") ],
+                        [ new("Publications", $"page/{publications}") ],
+                    ]
+                },
+                //4
+                new(active_requests)
+                {
+                    ParrentName = user_managment,
+                    Text = "🤷 *Active Requests* 🤷",
+                    Buttons =
+                    []
+                },
+                new(all_users)
+                {
+                    ParrentName = user_managment,
+                    Text = "👉 *All Users* 👈",
+                    Buttons =
+                    []
+                },
+                new(device_request)
+                {
+                    ParrentName = device_managment,
+                    Text = "🎫 *Device Request* 🎫",
+                    Buttons =
+                    [
+                        [ new("Copy") ]
+                    ]
+                },
+                new(devices)
+                {
+                    ParrentName = device_managment,
+                    Text = "🤖 *Devices* 🤖",
+                    Buttons =
+                    []
+                },
+                new(subscriptions)
+                {
+                    ParrentName = menu_managment,
+                    Text = "📩 *Subscriptions* 📩",
+                    Buttons  =
+                    [
+                        [ new("Add", $"page/{add_subscription}") ],
+                        [ new("Remove", $"page/{remove_subscription}") ],
+                    ]
+                },
+                new(publications)
+                {
+                    ParrentName = menu_managment,
+                    Text = "✍️ *Publications* ✍️",
+                    Buttons  =
+                    [
+                        [ new("Add", $"page/{add_publication}") ],
+                        [ new("Remove", $"page/{remove_publication}") ],
+                    ]
+                },
+                //5
+                new(request_info)
+                {
+                    ParrentName = active_requests,
+                    Text = "_*Request Info*_",
+                    Buttons = []
+                },
+                new(user_info)
+                {
+                    ParrentName = all_users,
+                    Text = "_*User Info*_",
+                    Buttons = []
+                },
+                new(add_subscription)
+                {
+                    ParrentName = subscriptions,
+                    Text = "_*Add Subscription*_",
+                    Buttons = []
+                },
+                new(remove_subscription)
+                {
+                    ParrentName = subscriptions,
+                    Text = "_*Remove Subscription*_",
+                    Buttons = []
+                },
+                new(add_publication)
+                {
+                    ParrentName = publications,
+                    Text = "_*Add Publication*_",
+                    Buttons = []
+                },
+                new(remove_publication)
+                {
+                    ParrentName = publications,
+                    Text = "_*Remove Publication*_",
+                    Buttons = []
+                },
+            ];
+        }
     }
 }

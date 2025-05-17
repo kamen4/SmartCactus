@@ -11,6 +11,8 @@ public class Page
     public string? Text { get; set; }
     public List<List<Button>>? Buttons { get; set; }
 
+    private Page() {}
+
     public Page(string name)
     {
         Name = name;
@@ -25,6 +27,19 @@ public class Page
     {
         page = GetPage(name);
         return page is not null;
+    }
+
+    public Page GetCopy()
+    {
+        var btnsCopy = Buttons?.Select(x => x.Select(x => x).ToList()).ToList();
+        var copy = new Page()
+        {
+            Name = Name,
+            Text = Text,
+            ParrentName = ParrentName,
+            Buttons = btnsCopy
+        };
+        return copy;
     }
 
     public InlineKeyboardMarkup GetTelegramKeyboard()
