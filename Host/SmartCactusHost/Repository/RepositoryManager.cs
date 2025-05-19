@@ -10,6 +10,7 @@ public class RepositoryManager : IRepositoryManager
     private readonly Lazy<ITopicRepository> _topicRepositiry;
     private readonly Lazy<IDeviceTopicRepository> _deviceTopicRepository;
     private readonly Lazy<IMessageRepository> _messageRepository;
+    private readonly Lazy<ITelegramBrokerActionRepository> _telegramBrokerActionRepository;
 
     public RepositoryManager(RepositoryContext repositoryContext)
     {
@@ -19,6 +20,7 @@ public class RepositoryManager : IRepositoryManager
         _topicRepositiry = new Lazy<ITopicRepository>(() => new TopicRepository(repositoryContext));
         _deviceTopicRepository = new Lazy<IDeviceTopicRepository>(() => new DeviceTopicRepository(repositoryContext));
         _messageRepository = new Lazy<IMessageRepository>(() => new MessageRepository(repositoryContext));
+        _telegramBrokerActionRepository = new Lazy<ITelegramBrokerActionRepository>(() => new TelegramBrokerActionRepository(repositoryContext));
     }
 
     public IUserRepository User => _userRepository.Value;
@@ -26,6 +28,7 @@ public class RepositoryManager : IRepositoryManager
     public ITopicRepository Topic => _topicRepositiry.Value;
     public IDeviceTopicRepository DeviceTopic => _deviceTopicRepository.Value;
     public IMessageRepository Message => _messageRepository.Value;
+    public ITelegramBrokerActionRepository TelegramBrokerAction => _telegramBrokerActionRepository.Value;
 
     public void Save()
     {

@@ -1,7 +1,10 @@
-﻿namespace Entities.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Entities.Models;
 
 public class MqttMessage
 {
+    [Key]
     public Guid Id { get; set; }
 
     public string Payload { get; set; } = string.Empty;

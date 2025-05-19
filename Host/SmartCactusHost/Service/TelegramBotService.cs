@@ -32,6 +32,14 @@ public class TelegramBotService : ITelegramBotService
         _bot.CreateDeviceRequest += _serviceManager.MQTTBrokerService.RequestDeviceCreation;
         _bot.GetRegisteredDevices += GetRegisteredDevices;
         _bot.GetTopicsWithConnectionForDevice += GetTopicsWithConnectionForDevice;
+
+        _bot.GetSubscriptionActions += () => _repositoryManager.TelegramBrokerAction.GetSubscriptionActions(false).ToList();
+        _bot.GetPublicationActions += () => _repositoryManager.TelegramBrokerAction.GetPublicationActions(false).ToList();
+        _bot.DeleteAction += DeleteAction;
+        _bot.CreateBrokerAction += CreateBrokerAction;
+
+        _bot.GetLastTopicMessage += GetLastTopicMessage;
+        _bot.PublishMessage += PublishMessage;
     }
 
     private (LoginStatus, UserRole) LoginUser(User user)
@@ -116,6 +124,39 @@ public class TelegramBotService : ITelegramBotService
             .ToList();
 
         return (topics, connections);
+    }
+
+    private void DeleteAction(Guid guid)
+    {
+        var action = _repositoryManager.TelegramBrokerAction.GetAction(guid, false);
+        if (action is not null)
+        {
+            _repositoryManager.TelegramBrokerAction.DeleteAction(action);
+        }
+    }
+
+    private bool CreateBrokerAction(TelegramBrokerAction action)
+    {
+        var topic = _repositoryManager.Topic.GetTopicByName(action.Topic, false);
+        if (topic is null)
+        {
+            return false;
+        }
+
+        _repositoryManager.TelegramBrokerAction.CreateAction(action);
+        _repositoryManager.Save();
+        return true;
+    }
+
+    private MqttMessage? GetLastTopicMessage(string topicName)
+    {
+        var topic = _repositoryManager.Topic.GetTopicByName(topicName, false);
+        return _repositoryManager.Message.GetLastMessageInTopic(topic, false);
+    }
+
+    private async void PublishMessage(string topic, string payload)
+    {
+        await _serviceManager.MQTTBrokerService.Publish(topic, payload);
     }
 
     public bool IsConnected => _bot.IsConnected;

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace Utils;
 
-public static class PasswordsUtil
+public static class PasswordUtils
 {
     public static byte[] Hash(string password, RandomNumberGenerator rng)
     {

@@ -7,5 +7,6 @@ public interface IRepositoryManager
     ITopicRepository Topic { get; }
     IDeviceTopicRepository DeviceTopic { get; }
     IMessageRepository Message { get; }
+    ITelegramBrokerActionRepository TelegramBrokerAction { get; }
     void Save();
 }

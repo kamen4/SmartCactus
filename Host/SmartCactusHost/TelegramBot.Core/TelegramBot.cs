@@ -11,6 +11,9 @@ using Telegram.Bot.Types.ReplyMarkups;
 using User = Entities.Models.User;
 using TGUser = Telegram.Bot.Types.User;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.AspNetCore.Authentication.OAuth.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 
 namespace TelegramBot;
 
@@ -41,6 +44,14 @@ public class TelegramBot
     public Func<string>? CreateDeviceRequest { get; set; }
     public Func<List<Device>>? GetRegisteredDevices { get; set; }
     public Func<Guid, (List<Topic>, List<DeviceTopic>)>? GetTopicsWithConnectionForDevice { get; set; }
+
+    public Func<List<TelegramBrokerAction>>? GetSubscriptionActions { get; set; }
+    public Func<List<TelegramBrokerAction>>? GetPublicationActions { get; set; }
+    public Action<Guid>? DeleteAction { get; set; }
+    public Func<TelegramBrokerAction, bool>? CreateBrokerAction { get; set; }
+
+    public Func<string, MqttMessage?>? GetLastTopicMessage { get; set; }
+    public Action<string, string>? PublishMessage { get; set; }
     #endregion
 
     private TelegramBot(string API_KEY)
@@ -97,9 +108,9 @@ public class TelegramBot
             {
                 case UpdateType.Message:
                     {
-                        if (msg == "/start")
+                        if (msg.StartsWith('/'))
                         {
-                            await SendPage(Page.GetPage("main"), chatId);
+                            await HandleCommand(chatId, msg, msgId);
                         }
                         return;
                     }
@@ -137,6 +148,59 @@ public class TelegramBot
         catch (Exception e)
         {
             _logger?.Error($"Telegram|{e.Message}");
+        }
+    }
+
+    private async Task HandleCommand(long chatId, string msg, int msgId)
+    {
+        if (msg == "/start")
+        {
+            await HandlePage(chatId, $"page/{Configurator.Paging.main}", 0);
+            return;
+        }
+        if (msg.StartsWith("/add-sub"))
+        {
+            var splittedMsg = msg.Split('=');
+            TelegramBrokerAction subAction = new()
+            {
+                Id = Guid.NewGuid(),
+                EventType = EventType.Subscription,
+                Topic = splittedMsg[1],
+                Selector = splittedMsg[2],
+                Name = splittedMsg[3]
+            };
+            if (CreateBrokerAction(subAction))
+            {
+                await HandlePage(chatId, $"page/{Configurator.Paging.subscriptions}", 0);
+            }
+            else
+            {
+                SendMessage(chatId, "Something went wrong while creating subscription :(\nTry again!");
+                await HandlePage(chatId, $"page/{Configurator.Paging.add_subscription}", 0);
+            }
+            return;
+        }
+        if (msg.StartsWith("/add-pub"))
+        {
+            var splittedMsg = msg.Split('=');
+            TelegramBrokerAction subAction = new()
+            {
+                Id = Guid.NewGuid(),
+                EventType = EventType.Publication,
+                Topic = splittedMsg[1],
+                Payload = splittedMsg[2],
+                Name = splittedMsg[3]
+            };
+            if (CreateBrokerAction(subAction))
+            {
+                await HandlePage(chatId, $"page/{Configurator.Paging.publications}", 0);
+            }
+            else
+            {
+                SendMessage(chatId, "Something went wrong while creating publication :(\nTry again!");
+                await HandlePage(chatId, $"page/{Configurator.Paging.add_publication}", 0);
+            }
+            return;
         }
     }
 
@@ -222,6 +286,29 @@ public class TelegramBot
 
         switch (pageName)
         {
+            case Configurator.Paging.main:
+                {
+                    page = page.GetCopy();
+                    List<TelegramBrokerAction> subs = GetSubscriptionActions();
+                    page.Text = $"{page.Text}\n{
+                        string.Join('\n', subs.Select(a =>
+                        {
+                            MqttMessage? msg = GetLastTopicMessage(a.Topic);
+                            return $"_{a.Name}_ \\- {
+                                Utils.JsonUtils.GetJsonDataWithSelector(msg?.Payload ?? "", a.Selector ?? "")}";
+                        })).Replace(".", "\\.")}";
+
+                    List<TelegramBrokerAction> pubs = GetPublicationActions().OrderBy(x => x.Topic).ToList();
+                    page.Buttons ??= [];
+                    page.Buttons.InsertRange(0, pubs.Select(a => new List<Button>() 
+                    {
+                        new($"{a.Name}", handler: () => {
+                            PublishMessage(a.Topic, a.Payload);
+                        })  
+                    }.ToList()));
+                    break;
+                }
+
             case Configurator.Paging.active_requests:
                 {
                     page = page.GetCopy();
@@ -333,14 +420,52 @@ Select device id to view info:";
                     }).ToList();
                     break;
                 }
+
+            case Configurator.Paging.remove_subscription:
+                {
+                    page = page.GetCopy();
+                    List<TelegramBrokerAction> subActions = GetSubscriptionActions();
+                    page.Text = $"{page.Text}\nSubscriptions found: {subActions.Count}\nTap to remove:";
+                    page.Buttons = subActions.Select(a => new List<Button>()
+                    {
+                        new(a.Topic, handler: async () =>
+                        {
+                            DeleteAction(a.Id);
+                            await HandlePage(chatId, $"page/{Configurator.Paging.remove_subscription}", msgId);
+                        })
+                    }).ToList();
+                    break;
+                }
+            case Configurator.Paging.remove_publication:
+                {
+                    page = page.GetCopy();
+                    List<TelegramBrokerAction> pubActions = GetPublicationActions();
+                    page.Text = $"{page.Text}\nPublications found: {pubActions.Count}\nTap to remove:";
+                    page.Buttons = pubActions.Select(a => new List<Button>()
+                    {
+                        new(a.Topic, handler: async () =>
+                        {
+                            DeleteAction(a.Id);
+                            await HandlePage(chatId, $"page/{Configurator.Paging.remove_publication}", msgId);
+                        })
+                    }).ToList();
+                    break;
+                }
         }
 
-        await UpdatePage(page, chatId, msgId);
+        if (msgId == 0)
+        {
+            await SendPage(page, chatId);
+        }
+        else
+        {
+            await UpdatePage(page, chatId, msgId);
+        }
     }
 
-    private async Task SendPage(Page page, long chatId)
+    private async Task<Message> SendPage(Page page, long chatId)
     {
-        await _botClient.SendMessage(chatId, page.Text ?? "", ParseMode.MarkdownV2, replyMarkup: page.GetTelegramKeyboard());
+        return await _botClient.SendMessage(chatId, page.Text ?? "", ParseMode.MarkdownV2, replyMarkup: page.GetTelegramKeyboard());
     }
 
     private async Task UpdatePage(Page page, long chatId, int msgId)

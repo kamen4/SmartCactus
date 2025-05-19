@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Entities.DTO.Topics;
 using Microsoft.VisualBasic;
+using System.Text.Unicode;
 
 namespace MQTTBroker;
 
@@ -121,7 +122,12 @@ public class MQTTBroker
 
     public async Task Publish(string topic, string payload)
     {
-        await _mqttServer.InjectApplicationMessage(topic, payload);
+        await _mqttServer.InjectApplicationMessage(new InjectedMqttApplicationMessage(new MQTTnet.MqttApplicationMessage()
+        {
+            Topic = topic,
+            Payload = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(payload.ToCharArray()))
+        })
+        { SenderClientId = "TELEGRAM_DEVICE" });
     }
 
     private Task ClientDisconnectedHandler(ClientDisconnectedEventArgs e)
@@ -137,7 +143,7 @@ public class MQTTBroker
         var topic = e.ApplicationMessage.Topic;
         _logger?.Info($"MQTTBroker|Publish to topic '{topic}', from: {e.ClientId}. Payload: {payload}");
 
-        if (topic.StartsWith("ping/") || string.IsNullOrEmpty(e.ClientId))
+        if (topic.StartsWith("ping/"))
         {
             return Task.CompletedTask;
         }

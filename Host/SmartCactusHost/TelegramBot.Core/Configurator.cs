@@ -179,7 +179,7 @@ public static class Configurator
                 new(add_subscription)
                 {
                     ParrentName = subscriptions,
-                    Text = "_*Add Subscription*_",
+                    Text = "_*Add Subscription*_\nType command:\n/add\\-sub\\=topic\\=field selector\\=main name",
                     Buttons = []
                 },
                 new(remove_subscription)
@@ -191,7 +191,7 @@ public static class Configurator
                 new(add_publication)
                 {
                     ParrentName = publications,
-                    Text = "_*Add Publication*_",
+                    Text = "_*Add Publication*_\nType command:\n/add\\-pub\\=topic\\=payload json\\=main name",
                     Buttons = []
                 },
                 new(remove_publication)

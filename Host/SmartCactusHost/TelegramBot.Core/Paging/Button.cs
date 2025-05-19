@@ -19,6 +19,7 @@ public class Button
     }
 
     public string? Text { get; set; }
+    public Page? ParentPage { get; set; }
     public Action? Handler { get; set; }
     public string? CallbackMessage { get; set; }
 

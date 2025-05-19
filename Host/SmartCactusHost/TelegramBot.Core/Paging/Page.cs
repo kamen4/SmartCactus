@@ -49,6 +49,8 @@ public class Page
             throw new NullReferenceException("Keyboard must have at least 1 button");
         }
 
+        Buttons.ForEach(x => x.ForEach(y => y.ParentPage = this));
+
         List<List<InlineKeyboardButton>> telegramButtons = [];
         foreach (var row in Buttons)
         {

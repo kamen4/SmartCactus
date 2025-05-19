@@ -12,5 +12,11 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
             .HasMany(d => d.Topics)
             .WithMany(t => t.Devices)
             .UsingEntity<DeviceTopic>();
+
+        builder.HasData(new Device()
+        {
+            Id = Guid.NewGuid(),
+            MqttClientId = "TELEGRAM_DEVICE",
+        });
     }
 }

@@ -53,13 +53,13 @@ public class MQTTBrokerService : IMQTTBrokerService
             Host = GetLocalIPAddress(),
             Port = _broker.Port,
             Username = Guid.NewGuid().ToString(),
-            Password = PasswordsUtil.GeneratePassword(16)
+            Password = PasswordUtils.GeneratePassword(16)
         };
 
         Device device = new()
         {
             MqttUsername = request.Username,
-            MqttPasswordHash = Convert.ToBase64String(PasswordsUtil.Hash(request.Password, _rng))
+            MqttPasswordHash = Convert.ToBase64String(PasswordUtils.Hash(request.Password, _rng))
         };
         _repositoryManager.Device.CreateDevice(device);
         _repositoryManager.Save();
@@ -82,7 +82,7 @@ public class MQTTBrokerService : IMQTTBrokerService
             _logger.Error($"MQTTBrokerServ|Device with username {username} is expired.");
             return null;
         }
-        if (!PasswordsUtil.Verify(Convert.FromBase64String(device.MqttPasswordHash ?? ""), password))
+        if (!PasswordUtils.Verify(Convert.FromBase64String(device.MqttPasswordHash ?? ""), password))
         {
             _logger.Error($"MQTTBrokerServ|Invalid password for device {username}.");
             return null;

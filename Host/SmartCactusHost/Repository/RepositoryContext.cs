@@ -24,4 +24,5 @@ public class RepositoryContext : DbContext
     DbSet<Topic>? Topics { get; set; }
     DbSet<DeviceTopic>? DeviceTopics { get; set; }
     DbSet<MqttMessage>? MqttMessages { get; set; }
+    DbSet<TelegramBrokerAction>? TelegramBrokerActions { get; set; }
 }

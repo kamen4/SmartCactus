@@ -1,9 +1,11 @@
-﻿using Entities.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using Entities.Enums;
 
 namespace Entities.Models;
 
 public class Device
 {
+    [Key]
     public Guid Id { get; set; }
     public string? MqttClientId { get; set; }
     public string? MqttUsername { get; set; }
